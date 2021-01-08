@@ -3,6 +3,7 @@ build_models
 file_uploads
 outputs
 
+pyrightconfig.json
 .ipynb_checkpoints
 .mypy_cache
 .vscode
