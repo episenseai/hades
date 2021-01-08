@@ -1,0 +1,49 @@
+[tool.poetry]
+name = "carbon"
+version = "0.1.0"
+description = "backend app"
+authors = ["Sushant Kumar <sushant.mithila@gmail.com>"]
+license = "LICENSE"
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.9"
+numpy = "^1.19.5"
+scipy = "^1.6.0"
+pandas = "^1.2.0"
+redis = "^3.5.3"
+hiredis = "^1.1.0"
+PyJWT = "^2.0.0"
+scikit-learn = "^0.24.0"
+matplotlib = "^3.3.3"
+fastapi = {extras = ["all"], version = "^0.63.0"}
+typer = {extras = ["all"], version = "^0.3.2"}
+hydra-core = "^1.0.5"
+tabulate = "^0.8.7"
+tqdm = "^4.55.1"
+
+[tool.poetry.dev-dependencies]
+pytest = "^5.2"
+yapf = "^0.30.0"
+jedi = "^0.18.0"
+ipython = "^7.19.0"
+pylint = "^2.6.0"
+pytest-mock = "^3.5.0"
+pytest-asyncio = "^0.14.0"
+isort = "^5.7.0"
+flake8 = "^3.8.4"
+flake8-isort = "^4.0.0"
+flake8-builtins = "^1.5.3"
+flake8-comprehensions = "^3.3.1"
+mypy = "^0.790"
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.pytest.ini_options]
+minversion = "6.0"
+testpaths = [
+    "tests",
+    "integration",
+]
