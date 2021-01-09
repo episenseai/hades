@@ -1,0 +1,64 @@
+{
+  "models": [
+    {
+      "modelid": "24ee24ed-6174-4a79-bf53-215d6fbcf680",
+      "modelname": "Adaptive Boosting Classifier",
+      "filename": "ada_BoostClassifier.py"
+    },
+    {
+      "modelid": "fec5dfd9-335f-4f3c-942f-2965a00fcdbe",
+      "modelname": "Bagging Classifier",
+      "filename": "bagging_Classifier.py"
+    },
+    {
+      "modelid": "4cbc5b86-2143-4cc7-9dcb-7c3700ec4db3",
+      "modelname": "Bernoulli Naive Bayes Classifier",
+      "filename": "bernoulli_NB_Classifier.py"
+    },
+    {
+      "modelid": "6bb167c7-fd88-4fc1-8cc9-5005b463a6b4",
+      "modelname": "Decision Tree Clasifier (Gini)",
+      "filename": "decision_Tree_Clasifier.py"
+    },
+    {
+      "modelid": "f4acfa46-5063-4a20-bc8c-9c44f1be9d66",
+      "modelname": "Gradient Boosting Classifier",
+      "filename": "gradient_Boosting_Classifier.py"
+    },
+    {
+      "modelid": "37c1d7c6-3914-4924-bbac-b057d8e2247b",
+      "modelname": "Linear SV Classifier",
+      "filename": "linear_SV_Classifier.py"
+    },
+    {
+      "modelid": "cf396a47-13d0-4ddd-b786-7b94a4852f72",
+      "modelname": "Logistic Regression Classifier",
+      "filename": "logistic_Regression_Classifier.py"
+    },
+    {
+      "modelid": "bb4ae778-4229-429d-bcbe-ed76872f16a1",
+      "modelname": "Multi-Layer Percetron Classifier",
+      "filename": "mlp_Classifier.py"
+    },
+    {
+      "modelid": "2dc4beda-3b36-4421-a014-87f9e0bfa778",
+      "modelname": "Multinomial Naive Bayes Classifier",
+      "filename": "multinomial_NB_Classifier.py"
+    },
+    {
+      "modelid": "88f1c34d-bfee-49b1-91e6-d3ea66347c6e",
+      "modelname": "Passive Aggressive Classifier",
+      "filename": "passive_Aggressive_Classifier.py"
+    },
+    {
+      "modelid": "7116745c-9f8d-458d-b7d6-c2aae90790b3",
+      "modelname": "Ridge Classifier",
+      "filename": "ridge_Classifier.py"
+    },
+    {
+      "modelid": "ae811751-603b-4af4-83bf-39a9eb7bf77f",
+      "modelname": "Stochastic Gradient Descent Classifier",
+      "filename": "sgd_Classifier.py"
+    }
+  ]
+}

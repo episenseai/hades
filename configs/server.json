@@ -1,0 +1,25 @@
+{
+  "host": "localhost",
+  "port": 8000,
+  "workers": 1,
+  "auto_reload": true,
+  "debug": false,
+  "access_log": true,
+  "ssl": {
+    "cert": "./server-cert.pem",
+    "key": "./server-key.pem"
+  },
+  "KEEP_ALIVE_TIMEOUT": 30,
+  "REQUEST_MAX_SIZE": 5368709120,
+  "RESPONSE_TIMEOUT": 200,
+  "REQUEST_TIMEOUT": 300,
+  "REQUEST_BUFFER_QUEUE_SIZE": 200,
+  "env": "DEV",
+  "data": "./data",
+  "CORS": [
+    "http://localhost:3000",
+    "http://load-balancer-1-580324002.us-east-2.elb.amazonaws.com",
+    "http://load-balancer-1-580324002.us-east-2.elb.amazonaws.com:80"
+  ],
+  "CORSmethods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"]
+}

@@ -141,6 +141,17 @@ optional = false
 python-versions = ">=2.6, !=3.0.*, !=3.1.*"
 
 [[package]]
+name = "devtools"
+version = "0.6.1"
+description = "Python's missing debug print command and other development tools."
+category = "dev"
+optional = false
+python-versions = ">=3.6"
+
+[package.extras]
+pygments = ["Pygments (>=2.2.0)"]
+
+[[package]]
 name = "dnspython"
 version = "2.1.0"
 description = "DNS toolkit"
@@ -1133,7 +1144,7 @@ python-versions = "*"
 [metadata]
 lock-version = "1.1"
 python-versions = "^3.9"
-content-hash = "1092b81cce03b842a27085181a53b0f2eeae5741ae48ed7d8b127ec301192ce5"
+content-hash = "98b40c3f67d265983d397ff9e6e1060c40c88b13316d00832438f64589d4a9f5"
 
 [metadata.files]
 aiofiles = [
@@ -1198,6 +1209,10 @@ cycler = [
 decorator = [
     {file = "decorator-4.4.2-py2.py3-none-any.whl", hash = "sha256:41fa54c2a0cc4ba648be4fd43cff00aedf5b9465c9bf18d64325bc225f08f760"},
     {file = "decorator-4.4.2.tar.gz", hash = "sha256:e3a62f0520172440ca0dcc823749319382e377f37f140a0b99ef45fecb84bfe7"},
+]
+devtools = [
+    {file = "devtools-0.6.1-py3-none-any.whl", hash = "sha256:7334183972a8d04e81d08b7f62126abca9b6f4de51d825c5fdcb9c88f252601a"},
+    {file = "devtools-0.6.1.tar.gz", hash = "sha256:a054307594d35d28fae8df7629967363e851ae0ac7b2152640a8a401c39d42d7"},
 ]
 dnspython = [
     {file = "dnspython-2.1.0-py3-none-any.whl", hash = "sha256:95d12f6ef0317118d2a1a6fc49aac65ffec7eb8087474158f42f26a639135216"},
