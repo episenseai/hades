@@ -42,7 +42,6 @@
     "models_queue": "models",
     "jwt": "f2fea1ed-b40c-40a3-94e6-698360c22de7",
     "models_folder": "./build_models",
-    "uploads_folder": "./file_uploads",
-    "temp_folder": "./temp_folder"
+    "uploads_folder": "./file_uploads"
   }
 }

@@ -47,7 +47,6 @@ class JobsConfig(BaseModel):
     jwt: str
     models_folder: str
     uploads_folder: str
-    temp_folder: str
 
 
 class ServerConfig(BaseModel):

@@ -1,7 +1,6 @@
 notebooks
 build_models
 file_uploads
-outputs
 
 pyrightconfig.json
 .ipynb_checkpoints

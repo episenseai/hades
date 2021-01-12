@@ -40,7 +40,6 @@ class WorkersConfig(BaseModel):
 
 class JobsConfig(BaseModel):
     uploads_folder: str
-    temp_folder: str
 
 
 class MLModelsConfig(BaseModel):

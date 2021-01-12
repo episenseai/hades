@@ -21,7 +21,6 @@
     ]
   },
   "jobs": {
-    "uploads_folder": "./file_uploads",
-    "temp_folder": "./temp_folder"
+    "uploads_folder": "./file_uploads"
   }
 }

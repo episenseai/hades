@@ -135,14 +135,6 @@ async def beforeStart(app, loop):
         os.mkdir(f"{server_config.jobs.models_folder}")
     except FileExistsError:
         pass
-    try:
-        shutil.rmtree(f"{server_config.jobs.temp_folder}")
-    except Exception:
-        print("Error while deleting directory: ", f"{server_config.jobs.temp_folder}")
-    try:
-        os.mkdir(f"{server_config.jobs.temp_folder}")
-    except FileExistsError:
-        pass
 
 
 # This is run after the server has successfully started

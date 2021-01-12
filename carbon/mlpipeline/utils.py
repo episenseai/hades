@@ -95,7 +95,7 @@ def csvFileSelector(config):
         df = pd.read_csv(zip_file.open(csv_files))
     except UnicodeDecodeError as ex:
         # print(ex)
-        with tempfile.TemporaryDirectory(dir=mlpipeline_config.jobs.temp_folder) as tmpdirname:
+        with tempfile.TemporaryDirectory() as tmpdirname:
             # print("created temporary directory: ", tmpdirname)
             zip_file.extractall(tmpdirname)
             with codecs.open(tmpdirname + "/" + csv_files, "r", encoding="utf-8", errors="ignore") as myfile:
