@@ -1,4 +1,4 @@
-from .server.config import server_config
+from .server.config import server_config, regressors, classifiers, multi_classifiers
 import redis
 import json
 import pickle
@@ -655,10 +655,11 @@ class PipeTasksConsumer(RedisTasksConsumer):
 
 # to map the model type list in config file
 model_type_keys = {
-    "2-classifier": "binary_classifier",
-    "n-classifier": "multi_class_classifier",
-    "regression": "regression",
+    "2-classifier": classifiers.models,
+    "n-classifier": multi_classifiers.models,
+    "regression": regressors.models,
 }
+
 
 
 class ModelsTasksProducer(RedisTasksProducer):
@@ -709,11 +710,11 @@ class ModelsTasksProducer(RedisTasksProducer):
                         # a single transaction
                         pipe.multi()
                         mss = {}
-                        for model in Conf.app[model_type_keys[modelType]]:
+                        for model in model_type_keys[modelType]:
                             pipe.xadd(
                                 self.jobq,
                                 {
-                                    **model,
+                                    **model.dict(),
                                     "model_type": modelType,
                                     "pipe_result_hashmap": pipe_result_hashmap,
                                     "field_name": "finalconfig:GET",
@@ -739,6 +740,7 @@ class ModelsTasksProducer(RedisTasksProducer):
                     continue
                 # Any other exception type is not expected
                 except Exception as ex:
+                    print(ex)
                     raise
         return result
 
@@ -1129,7 +1131,7 @@ class MainApp:
     def get_user(self, user_name):
         res = self.redis.hget(self.users_hashmap, user_name)
         if res:
-            return User(*res.split(sep=b":"))
+            return User(*res.split(sep=":")) # type: ignore
         return None
 
     def get_id(self, user_name):
@@ -1154,10 +1156,9 @@ class MainApp:
         payload = {"username": user_name, "userid": user_id}
         if user_id:
             try:
-                return jwt.encode(payload, server_config.jobs.jwt, algorithm="HS256").decode(
-                    "utf-8"
-                )
-            except Exception:
+                return jwt.encode(payload, server_config.jobs.jwt, algorithm="HS256")
+            except Exception as ex:
+                print("Error issue_jwt => ", ex)
                 pass
         return None
 
@@ -1165,9 +1166,7 @@ class MainApp:
     # if the token is valid then user is verified
     def verify_jwt(self, encoded_jwt):
         try:
-            payload = jwt.decode(encoded_jwt, server_config.jobs.jwt, algorithms="HS256")
-            # print(payload)
-            return payload
+            return jwt.decode(encoded_jwt, server_config.jobs.jwt, algorithms="HS256")
         except Exception:
             pass
         return None

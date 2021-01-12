@@ -3,8 +3,6 @@ from carbon.mlpipeline.utils import (
     featureListGenerator,
 )
 
-from epi import Conf
-
 
 def process(config):
     df = csvFileSelector(config)

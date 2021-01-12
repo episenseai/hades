@@ -8,7 +8,6 @@ from carbon.mlpipeline.utils import (
     iterateNestedDict,
     featureIncludedDefault,
 )
-from epi import Conf
 
 
 def process(config):

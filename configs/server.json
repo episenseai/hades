@@ -35,7 +35,7 @@
     "UPLOADS_SORTED_SET": "uploads_sorted_set:0xxxx0",
     "PROJECTS_DESC_HASHMAP": "projects_desc_hashmap:0xxxx0",
     "MODELS_SORTED_SET": "models_soted_set:0xxxx0",
-    "DB_GEN": 1573224545,
+    "DB_GEN": 2223224545,
     "TEST_USER_ID": "f9433d49-08db-4dbb-8c89-31995f6f466c",
     "TEST_PROJ_ID": "bf4199b9-20c7-49ae-abd0-596f5b09b704",
     "pipe_queue": "pipe",

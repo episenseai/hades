@@ -1,7 +1,5 @@
 from carbon.mlpipeline.utils import csvFileSelector, typeOfColumn1, uniqueColumnIdGenerator
 
-from epi import Conf
-
 
 def process(config):
     df = csvFileSelector(config)

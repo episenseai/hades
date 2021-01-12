@@ -18,7 +18,7 @@ func_dict = {
 
 # spawn this worker func onto a process
 def pipe_consumer_func(worker):
-    redis_pool = redis.ConnectionPool(**mlpipeline_config.redis)
+    redis_pool = redis.ConnectionPool(**mlpipeline_config.redis.dict())
     consumer = PipeTasksConsumer(redis_pool, func_dict)
     try:
         consumer.run(worker)

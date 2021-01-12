@@ -1,4 +1,3 @@
-from epi import Conf
 import re
 
 

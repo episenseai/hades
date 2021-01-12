@@ -58,3 +58,34 @@ class ServerConfig(BaseModel):
 
 server_config = ServerConfig.parse_file(config_path)
 # debug(server_config)
+
+regressors_path = Path('configs/models/regressor_models.json')
+classifiers_path = Path('configs/models/classifier_models.json')
+multi_classifiers_path = Path('configs/models/multi_classifier_models.json')
+
+
+class MLModel(BaseModel):
+    modelid: str  #UUID4
+    modelname: str
+    filename: str  # FilePath
+
+
+class RegressorModels(BaseModel):
+    models: List[MLModel]
+
+
+regressors = RegressorModels.parse_file(regressors_path)
+
+
+class ClassifierModels(BaseModel):
+    models: List[MLModel]
+
+
+classifiers = ClassifierModels.parse_file(classifiers_path)
+
+
+class MultiClassifierModels(BaseModel):
+    models: List[MLModel]
+
+
+multi_classifiers = MultiClassifierModels.parse_file(classifiers_path)
