@@ -2,9 +2,8 @@ import os
 
 from sanic import Blueprint, response
 
-from ..store import store_backend
-
 from ..config import server_config
+from ..store import store_backend
 
 uploads_bp = Blueprint("uploads_service", url_prefix="/uploads")
 

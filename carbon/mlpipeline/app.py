@@ -3,7 +3,6 @@ from multiprocessing import Process
 import redis
 
 from ..store.backend.redis import PipeTasksConsumer
-
 from .config import mlpipeline_config
 from .stages import build, consume, prepare, transform
 
@@ -23,6 +22,9 @@ ps = []
 
 # spawn this worker func onto a process
 def pipe_consumer_func(worker):
+    import warnings
+    warnings.simplefilter("ignore")
+
     redis_pool = redis.ConnectionPool(**mlpipeline_config.redis.dict())
     consumer = PipeTasksConsumer(redis_pool, func_dict)
     try:

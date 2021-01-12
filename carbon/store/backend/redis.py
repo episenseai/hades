@@ -12,7 +12,7 @@ from collections import namedtuple
 import jwt
 import redis
 
-from ..config import classifiers, multi_classifiers, regressors, jobqueue_config
+from ..config import classifiers, jobqueue_config, multi_classifiers, regressors
 
 seq = [
     "consume:GET",
@@ -357,7 +357,7 @@ class PipeTasksProducer(RedisTasksProducer):
                     pipe.watch(result_hashmap)
                     pstatus = pipe.hget(result_hashmap, "pipe:STATUS")
                     current_stage = self.redis.hget(result_hashmap, "current.stage")
-                    idx = seq.index(current_stage) - 1
+                    idx = seq.index(current_stage) - 1  # type: ignore
                     # print(status, current_stage, idx)
                     if idx < 0:
                         status = False
@@ -398,10 +398,10 @@ class PipeTasksProducer(RedisTasksProducer):
                     pipe.execute()
                     # generate a different project_id
                     break
-                except redis.WatchError:
+                except redis.WatchError as ex:
                     if watch_error_count > 100:
+                        print(ex)
                         raise Exception("Something fatal happened while creating a new project")
-                        break
                     if watch_error_count > 20:
                         time.sleep(0.1)
                     watch_error_count += 1
@@ -433,10 +433,10 @@ class PipeTasksProducer(RedisTasksProducer):
                         "error_stack": result[3],
                     }
                     break
-                except redis.WatchError:
+                except redis.WatchError as ex:
                     if watch_error_count > 100:
+                        print(ex)
                         raise Exception("Something fatal happened while creating a new project")
-                        break
                     if watch_error_count > 20:
                         time.sleep(0.1)
                     watch_error_count += 1
@@ -554,12 +554,12 @@ class PipeTasksConsumer(RedisTasksConsumer):
             # ignore the job, ack it and get the next job
             if (
                     # check pipe:STATUS
-                (int(pipe_status) != 0)
+                (int(pipe_status) != 0)  # type: ignore
                     # stage pulled from the job_queue is not the active stage of the pipeline
                     or current_stage != self.stage
                     # current_jobid supercedes the job pulled from the job queue
                     or current_jobid > self.jobid):
-                ack = self.xack()
+                self.xack()
                 print("stale items - pull job")
                 continue
 
@@ -634,7 +634,7 @@ class PipeTasksConsumer(RedisTasksConsumer):
                 except redis.WatchError:
                     watch_error_count += 1
                     continue
-                except Exception as ex:
+                except Exception:
                     print("Error happended while calling freeze_pipe")
                     break
 
@@ -861,7 +861,7 @@ class ModelsTasksConsumer(RedisTasksConsumer):
                     continue
                 # Any other exception type is not expected
                 except Exception as ex:
-                    raise
+                    raise ex
         return result
 
     def submit_result(
@@ -929,7 +929,6 @@ class ModelsTasksConsumer(RedisTasksConsumer):
                 except redis.WatchError:
                     if error_count > 100:
                         raise Exception("Something fatal happened while submitting result of model job")
-                        break
                     if error_count > 20:
                         time.sleep(0.1)
                     error_count += 1
@@ -958,6 +957,7 @@ class ModelsTasksConsumer(RedisTasksConsumer):
             return False
 
     def run(self, consumer_name):
+        job = None
         while True:
             try:
                 print("─────────────────────────   pulling model job   ─────────────────────────")
@@ -993,7 +993,7 @@ class ModelsTasksConsumer(RedisTasksConsumer):
                 if not (isinstance(error, KeyboardInterrupt)):
                     print(error_msg)
             finally:
-                if not self._item:
+                if not self._item or not job:
                     return
                 self.submit_result(
                     job["model_result_hashmap"],
@@ -1012,7 +1012,7 @@ class ModelsTasksConsumer(RedisTasksConsumer):
                     "modelname = ",
                     job["modelname"],
                 )
-
+                job = None
                 # time.sleep(10)
 
 
@@ -1073,10 +1073,10 @@ class Application:
                         break
                     user_id = None
                     break
-                except redis.WatchError:
+                except redis.WatchError as ex:
                     if watch_error_count > 100:
+                        print(ex)
                         raise Exception("Something fatal happened while creating a new user account.")
-                        break
                     if watch_error_count > 20:
                         time.sleep(0.1)
                     watch_error_count += 1
@@ -1152,13 +1152,12 @@ class Application:
                         )
                         pipe.execute()
                         return project_id
-                        break
                     # generate a different project_id
                     continue
-                except redis.WatchError:
+                except redis.WatchError as ex:
                     if watch_error_count > 100:
+                        print(ex)
                         raise Exception("Something fatal happened while creating a new project")
-                        break
                     if watch_error_count > 20:
                         time.sleep(0.1)
                     watch_error_count += 1

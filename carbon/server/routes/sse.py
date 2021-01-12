@@ -6,7 +6,7 @@ from concurrent.futures import CancelledError
 from sanic import Blueprint, response
 from sanic.response import stream
 
-from ..store import store_backend, model_producer, pipe_producer
+from ..store import model_producer, pipe_producer, store_backend
 
 sse_bp = Blueprint("see_events_stream", url_prefix="/sse")
 

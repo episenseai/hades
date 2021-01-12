@@ -3,7 +3,6 @@ from multiprocessing import Process
 import redis
 
 from ..store.backend.redis import ModelsTasksConsumer
-
 # Classifier models
 from .classifiers import adaboost, bagging, bernoulli_nb
 from .classifiers import decision_tree as decision_tree_classifier
@@ -57,6 +56,9 @@ ps = []
 
 # spawn this worker func onto a process
 def models_consumer_func(worker):
+    import warnings
+    warnings.simplefilter("ignore")
+
     redis_pool = redis.ConnectionPool(**mlmodels_config.redis.dict())
     consumer = ModelsTasksConsumer(redis_pool, func_dict)
     try:
@@ -66,7 +68,6 @@ def models_consumer_func(worker):
             print("-------------Exception happened in model worker: ", worker)
             print(ex)
         # import traceback
-
         # print(traceback.format_exc())
 
 

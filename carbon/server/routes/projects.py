@@ -1,6 +1,6 @@
 from sanic import Blueprint, response
 
-from ..store import store_backend, pipe_producer
+from ..store import pipe_producer, store_backend
 
 projects_bp = Blueprint("projects_service", url_prefix="/tab/v1/projects")
 

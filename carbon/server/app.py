@@ -5,14 +5,14 @@ from sanic import Sanic, response
 from sanic.exceptions import NotFound
 from sanic_cors import CORS
 
-# from carbon.mlmodels.main import spawn_model_workers
-# from carbon.mlpipeline.main import spawn_pipe_workers
-
-from .store import store_backend
 from .config import server_config
 from .routes import root_bp
 from .routes.sse import check_sse_token
+from .store import store_backend
 from .utils import printBox
+
+# from carbon.mlmodels.main import spawn_model_workers
+# from carbon.mlpipeline.main import spawn_pipe_workers
 
 # pipe_worker_process_kill = lambda: None
 # model_worker_process_kill = lambda: None
