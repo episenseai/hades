@@ -60,7 +60,7 @@ class RedisTasks:
                 self.redis.xadd(q, {"OK": "OK"})
             # check if jobq is a stream
             assert self.redis.type(q) == "stream", f"jobq_queue = {q} nust be a stream"
-            if not any([q_cg["name"] == cg for q_cg in self.redis.xinfo_groups(self.jobq)]):
+            if not any((q_cg["name"] == cg for q_cg in self.redis.xinfo_groups(self.jobq))):
                 # create consumer group
                 self.redis.xgroup_create(q, cg)
 
@@ -70,8 +70,8 @@ class RedisTasks:
         """
         try:
             return json.dumps(item, allow_nan=True)
-        except Exception:
-            raise JSONEncodeError
+        except Exception as ex:
+            raise JSONEncodeError from ex
 
     def from_JSON(self, item):
         """
@@ -79,8 +79,8 @@ class RedisTasks:
         """
         try:
             return json.loads(item)
-        except Exception:
-            raise JSONDecodeError
+        except Exception as ex:
+            raise JSONDecodeError from ex
 
     def pickle_gzip(self, obj):
         """
@@ -89,8 +89,8 @@ class RedisTasks:
         """
         try:
             return gzip.compress(pickle.dumps(obj, protocol=4))
-        except Exception:
-            raise PickleError
+        except Exception as ex:
+            raise PickleError from ex
 
     def unpickle_unzip(self, obj_dump_encoded):
         """
@@ -99,21 +99,22 @@ class RedisTasks:
         """
         try:
             return pickle.loads(gzip.decompress(obj_dump_encoded))
-        except Exception:
-            raise UnpickleError
+        except Exception as ex:
+            raise UnpickleError from ex
 
     def encode(self, obj):
         return gzip.compress(base64.b64encode(gzip.compress(pickle.dumps(obj, protocol=4))))
 
-    def decode(self, bytes):
-        return pickle.loads(gzip.decompress(base64.b64decode(gzip.decompress(bytes))))
+    def decode(self, bbytes):
+        return pickle.loads(gzip.decompress(base64.b64decode(gzip.decompress(bbytes))))
 
     def hashmap(self, user_id, project_id):
         return f"{user_id}:{project_id}:{self.jobq}"
 
 
 class RedisTasksError(Exception):
-    def __init__(self):
+    def __init__(self, msg="RedisTasksError"):
+        super().__init__(msg)
         import traceback
 
         self.stack_trace = traceback.format_exc()
@@ -401,7 +402,7 @@ class PipeTasksProducer(RedisTasksProducer):
                 except redis.WatchError as ex:
                     if watch_error_count > 100:
                         print(ex)
-                        raise Exception("Something fatal happened while creating a new project")
+                        raise Exception("Something fatal happened while creating a new project") from ex
                     if watch_error_count > 20:
                         time.sleep(0.1)
                     watch_error_count += 1
@@ -435,8 +436,7 @@ class PipeTasksProducer(RedisTasksProducer):
                     break
                 except redis.WatchError as ex:
                     if watch_error_count > 100:
-                        print(ex)
-                        raise Exception("Something fatal happened while creating a new project")
+                        raise Exception("Something fatal happened while creating a new project") from ex
                     if watch_error_count > 20:
                         time.sleep(0.1)
                     watch_error_count += 1
@@ -552,9 +552,8 @@ class PipeTasksConsumer(RedisTasksConsumer):
             )
 
             # ignore the job, ack it and get the next job
-            if (
-                    # check pipe:STATUS
-                (int(pipe_status) != 0)  # type: ignore
+            # check pipe:STATUS
+            if ((int(pipe_status) != 0)  # type: ignore
                     # stage pulled from the job_queue is not the active stage of the pipeline
                     or current_stage != self.stage
                     # current_jobid supercedes the job pulled from the job queue
@@ -591,9 +590,8 @@ class PipeTasksConsumer(RedisTasksConsumer):
                     )
 
                     # check if the job is superceded by some other job
-                    if (
-                            # check pipe:STATUS
-                        (int(pipe_status) != 0)
+                    # check pipe:STATUS
+                    if ((int(pipe_status) != 0)
                             # stage pulled from the job_queue is not the active stage of the pipeline
                             or current_stage != self.stage
                             # current_jobid supercedes the job pulled from the job queue
@@ -833,7 +831,6 @@ class ModelsTasksConsumer(RedisTasksConsumer):
                         pipe.xack(self.jobq, self.jobq_CG, self.jobid)
                         pipe.execute()
                         print("stale items - pull model job")
-                        continue
                     else:
                         pipe.multi()
                         pipe.hget(
@@ -926,9 +923,10 @@ class ModelsTasksConsumer(RedisTasksConsumer):
                             pipe.hset(model_result_hashmap, f"{modelid}:STATUS", "ERROR")
                             pipe.execute()
                     break
-                except redis.WatchError:
+                except redis.WatchError as ex:
                     if error_count > 100:
-                        raise Exception("Something fatal happened while submitting result of model job")
+                        raise Exception(
+                            "Something fatal happened while submitting result of model job") from ex
                     if error_count > 20:
                         time.sleep(0.1)
                     error_count += 1
@@ -993,26 +991,25 @@ class ModelsTasksConsumer(RedisTasksConsumer):
                 if not (isinstance(error, KeyboardInterrupt)):
                     print(error_msg)
             finally:
-                if not self._item or not job:
-                    return
-                self.submit_result(
-                    job["model_result_hashmap"],
-                    job["jobid"],
-                    job["modelid"],
-                    modelstatus,
-                    result_dict,
-                    model_to_pickle,
-                    error_msg,
-                )
-                self.redis.xack(self.jobq, self.jobq_CG, job["jobid"])
-                print(
-                    "submitted model result",
-                    "jobid = ",
-                    job["jobid"],
-                    "modelname = ",
-                    job["modelname"],
-                )
-                job = None
+                if self._item and job:
+                    self.submit_result(
+                        job["model_result_hashmap"],
+                        job["jobid"],
+                        job["modelid"],
+                        modelstatus,
+                        result_dict,
+                        model_to_pickle,
+                        error_msg,
+                    )
+                    self.redis.xack(self.jobq, self.jobq_CG, job["jobid"])
+                    print(
+                        "submitted model result",
+                        "jobid = ",
+                        job["jobid"],
+                        "modelname = ",
+                        job["modelname"],
+                    )
+                    job = None
                 # time.sleep(10)
 
 
@@ -1076,7 +1073,7 @@ class Application:
                 except redis.WatchError as ex:
                     if watch_error_count > 100:
                         print(ex)
-                        raise Exception("Something fatal happened while creating a new user account.")
+                        raise Exception("Something fatal happened while creating a new user account.") from ex
                     if watch_error_count > 20:
                         time.sleep(0.1)
                     watch_error_count += 1
@@ -1157,7 +1154,7 @@ class Application:
                 except redis.WatchError as ex:
                     if watch_error_count > 100:
                         print(ex)
-                        raise Exception("Something fatal happened while creating a new project")
+                        raise Exception("Something fatal happened while creating a new project") from ex
                     if watch_error_count > 20:
                         time.sleep(0.1)
                     watch_error_count += 1
@@ -1177,15 +1174,12 @@ class Application:
         projects = [(p + [projects_desc[i]]) for i, p in enumerate(projects)]
         # print(projects)
         return sorted(
-            [{
+            ({
                 "projectid": p[1],
                 "projectname": p[3],
                 "timestamp": datetime.datetime.utcfromtimestamp(int(p[2])).isoformat(),
                 "projectdesc": p[4],
-            } for p in filter(
-                lambda p: p[0] == user_id,
-                projects,
-            )],
+            } for p in filter(lambda p: p[0] == user_id, projects)),
             key=lambda x: x["timestamp"],
             reverse=True,
         )
@@ -1229,14 +1223,14 @@ class Application:
         if not uploads:
             return uploads
         return sorted(
-            [{
+            ({
                 "timestamp":
                     datetime.datetime.utcfromtimestamp(int(p[1].split("___", maxsplit=1)[0])).isoformat(),
                 "filename":
                     p[1].split("___", maxsplit=1)[1],
                 "filepath":
                     f"{user_id}/{p[1]}",
-            } for p in filter(lambda p: p[0] == user_id, [up.split(sep=":") for up in uploads])],
+            } for p in filter(lambda p: p[0] == user_id, (up.split(sep=":") for up in uploads))),
             key=lambda p: p["timestamp"],
             reverse=True,
         )
