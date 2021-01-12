@@ -1,6 +1,6 @@
 from sanic import Blueprint, response
 
-from carbon.redis_task import main_app, pipe_producer
+from ..store import store_backend, pipe_producer
 
 projects_bp = Blueprint("projects_service", url_prefix="/tab/v1/projects")
 
@@ -17,7 +17,7 @@ async def create_project(request):
             info = "Project name contains  ':'  , which is not allowed. Try again with a different name."
             status = 400
         else:
-            projectid = main_app.add_project(
+            projectid = store_backend.add_project(
                 request.ctx.userid,
                 request.json["projectname"],
                 request.json["projectdesc"],
@@ -47,7 +47,7 @@ async def list_projects(request):
             info = "Bad request. missing parameters"
             status = 400
         else:
-            data = main_app.projects_list(request.ctx.userid)
+            data = store_backend.projects_list(request.ctx.userid)
             info = "list of projects"
             status = 200
     except Exception as ex:
@@ -75,12 +75,12 @@ async def set_project(request):
             info = "Bad request. missing parameters"
             status = 400
         else:
-            proj = main_app.verify_projectid(request.ctx.userid, request.args["projectid"][0])
+            proj = store_backend.verify_projectid(request.ctx.userid, request.args["projectid"][0])
             if proj is None:
                 info = f"Projectid {request.args['projectid'][0]} not associated with the user"
                 status = 400
             else:
-                main_app.set_current_projectid(request.ctx.userid, request.args["projectid"][0])
+                store_backend.set_current_projectid(request.ctx.userid, request.args["projectid"][0])
                 data = pipe_producer.current_pipe_state(request.ctx.userid, request.args["projectid"][0])
                 if data is None:
                     info = f"Something unexpected happened while setting the current project to {request.args['projectid'][0]}"

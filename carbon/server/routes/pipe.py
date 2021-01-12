@@ -1,6 +1,6 @@
 from sanic import Blueprint, response
 
-from carbon.redis_task import main_app, pipe_producer
+from ..store import store_backend, pipe_producer
 
 pipe_bp = Blueprint("pipe_service", url_prefix="/tab/v1/pipe")
 
@@ -12,7 +12,7 @@ async def next_stage(request):
             info = "Bad request. missing parameters"
             status = 400
         else:
-            proj = main_app.verify_projectid(request.ctx.userid, request.args["projectid"][0])
+            proj = store_backend.verify_projectid(request.ctx.userid, request.args["projectid"][0])
             if proj is None:
                 info = f"Projectid {request.args['projectid'][0]} not associated with the user"
                 status = 400
@@ -69,7 +69,7 @@ async def stage_data(request):
         if "userid" not in request.args and "projectid" not in request.args:
             info = "Bad request. missing parameters"
             status = 400
-        elif (main_app.verify_projectid(request.ctx.userid, request.args["projectid"][0]) is None):
+        elif (store_backend.verify_projectid(request.ctx.userid, request.args["projectid"][0]) is None):
             info = (f"Projectid {request.args['projectid'][0]} not associated with the user")
             status = 400
         elif "current_stage" not in request.json:
@@ -126,7 +126,7 @@ async def revert_stage(request):
             info = "Bad request. missing parameters"
             status = 400
         else:
-            proj = main_app.verify_projectid(request.ctx.userid, request.args["projectid"][0])
+            proj = store_backend.verify_projectid(request.ctx.userid, request.args["projectid"][0])
 
             if proj is None:
                 info = f"Projectid {request.args['projectid'][0]} not associated with the user"
@@ -191,7 +191,7 @@ async def unfreeze_pipe(request):
             status = 400
 
         else:
-            proj = main_app.verify_projectid(request.ctx.userid, request.args["projectid"][0])
+            proj = store_backend.verify_projectid(request.ctx.userid, request.args["projectid"][0])
             if proj is None:
                 info = f"Projectid {request.args['projectid'][0]} not associated with the user"
                 status = 400

@@ -12,7 +12,26 @@ from collections import namedtuple
 import jwt
 import redis
 
-from .server.config import classifiers, multi_classifiers, regressors, server_config
+from ..config import classifiers, multi_classifiers, regressors, jobqueue_config
+
+seq = [
+    "consume:GET",
+    "consume:POST",
+    "prepare:GET",
+    "prepare:POST",
+    "transform:GET",
+    "transform:POST",
+    "build:GET",
+    "build:POST",
+    "finalconfig:GET",
+]
+
+# to map the model type list in config file
+model_type_keys = {
+    "2-classifier": classifiers.models,
+    "n-classifier": multi_classifiers.models,
+    "regression": regressors.models,
+}
 
 
 class RedisTasks:
@@ -26,9 +45,9 @@ class RedisTasks:
         assert isinstance(pool, redis.ConnectionPool), "pool should be a Redis ConnectionPool"
 
         self.redis = redis.Redis(connection_pool=pool)
-        self.jobq = f"{queue}:{server_config.jobs.DB_GEN}"
+        self.jobq = f"{queue}:{jobqueue_config.DB_GEN}"
         self.jobq_CG = f"CG:{self.jobq}"
-        self.deadq = f"dead.{queue}:{server_config.jobs.DB_GEN}"
+        self.deadq = f"dead.{queue}:{jobqueue_config.DB_GEN}"
         self.deadq_CG = f"CG:{self.deadq}"
         # print("instantiating......", self.jobq, self.jobq_CG)
 
@@ -288,19 +307,6 @@ class RedisTasksConsumer(RedisTasks):
         self._item = None
 
 
-seq = [
-    "consume:GET",
-    "consume:POST",
-    "prepare:GET",
-    "prepare:POST",
-    "transform:GET",
-    "transform:POST",
-    "build:GET",
-    "build:POST",
-    "finalconfig:GET",
-]
-
-
 class PipeTasksProducer(RedisTasksProducer):
     def __init__(self, pool):
         # print("instantiating pipe producer ....")
@@ -511,7 +517,7 @@ class PipeTasksConsumer(RedisTasksConsumer):
                 ex: consumer_func(stage_data, file_name) -> config_next_stage
         """
         # print("instantiating pipe task consumer......")
-        super().__init__(pool, server_config.jobs.pipe_queue)
+        super().__init__(pool, jobqueue_config.pipe_queue)
         self.stage_data = {}
         self.func_dict = func_dict
 
@@ -642,27 +648,21 @@ class PipeTasksConsumer(RedisTasksConsumer):
                 print("computed pipe result")
                 self.submit_result(result)
                 print("submitted pipe result")
+            except KeyboardInterrupt:
+                break
             except Exception as error:
                 self.freeze_pipe(error)
             finally:
                 self.xack()
 
 
-# to map the model type list in config file
-model_type_keys = {
-    "2-classifier": classifiers.models,
-    "n-classifier": multi_classifiers.models,
-    "regression": regressors.models,
-}
-
-
 class ModelsTasksProducer(RedisTasksProducer):
     current_stage = "finalconfig:GET"
-    models_sorted_set = server_config.jobs.MODELS_SORTED_SET
+    models_sorted_set = jobqueue_config.MODELS_SORTED_SET
 
     def __init__(self, pool):
         # print("instantiating modle task producer.....")
-        super().__init__(pool, server_config.jobs.models_queue)
+        super().__init__(pool, jobqueue_config.models_queue)
 
     def submit_model_jobs(self, user_id, project_id, modelType, optimizeUsing):
         """
@@ -679,11 +679,11 @@ class ModelsTasksProducer(RedisTasksProducer):
         """
         # config data used for model building
         pipe_result_hashmap = (
-            f"{user_id}:{project_id}:{server_config.jobs.pipe_queue}:{server_config.jobs.DB_GEN}")
+            f"{user_id}:{project_id}:{jobqueue_config.pipe_queue}:{jobqueue_config.DB_GEN}")
 
         # hashmap to store the pipe results
         model_result_hashmap = (
-            f"{user_id}:{project_id}:{server_config.jobs.models_queue}:{server_config.jobs.DB_GEN}")
+            f"{user_id}:{project_id}:{jobqueue_config.models_queue}:{jobqueue_config.DB_GEN}")
 
         result = None
         with self.redis.pipeline() as pipe:
@@ -737,7 +737,7 @@ class ModelsTasksProducer(RedisTasksProducer):
     # returns a dictionary of { modelid: status }
     def get_model_status(self, user_id, project_id):
         model_result_hashmap = (
-            f"{user_id}:{project_id}:{server_config.jobs.models_queue}:{server_config.jobs.DB_GEN}")
+            f"{user_id}:{project_id}:{jobqueue_config.models_queue}:{jobqueue_config.DB_GEN}")
         list_of_modelid = self.get_models_list(user_id, project_id)
         return dict(
             zip(
@@ -751,7 +751,7 @@ class ModelsTasksProducer(RedisTasksProducer):
     # returns a dictionary of { modelid: data }
     def get_model_data(self, user_id, project_id, list_of_modelid):
         model_result_hashmap = (
-            f"{user_id}:{project_id}:{server_config.jobs.models_queue}:{server_config.jobs.DB_GEN}")
+            f"{user_id}:{project_id}:{jobqueue_config.models_queue}:{jobqueue_config.DB_GEN}")
         res = self.redis.hmget(
             model_result_hashmap,
             ([f"{modelid}:DATA" for modelid in list_of_modelid]
@@ -811,7 +811,7 @@ class ModelsTasksConsumer(RedisTasksConsumer):
     """
     def __init__(self, pool, model_func_dict):
         # print("instantiating models task consumer......")
-        super().__init__(pool, server_config.jobs.models_queue)
+        super().__init__(pool, jobqueue_config.models_queue)
         self.model_func_dict = model_func_dict
 
     def pull_job(self, consumer_name):
@@ -936,11 +936,11 @@ class ModelsTasksConsumer(RedisTasksConsumer):
                     continue
 
     def pickle_model(self, folder_name, file_path, model_to_pickle):
-        path = f"{server_config.jobs.models_folder}/{file_path}"
+        path = f"{jobqueue_config.models_folder}/{file_path}"
         try:
             zipped = self.pickle_gzip(model_to_pickle)
             try:
-                os.mkdir(f"{server_config.jobs.models_folder}/{folder_name}")
+                os.mkdir(f"{jobqueue_config.models_folder}/{folder_name}")
             except FileExistsError:
                 # print("folder already exists")
                 pass
@@ -1019,18 +1019,8 @@ class ModelsTasksConsumer(RedisTasksConsumer):
 User = namedtuple("User", ["id", "password"])
 
 
-class MainApp:
-    def __init__(
-        self,
-        pool,
-        users_hashmap,
-        users_set,
-        users_id,
-        projects_set,
-        current_project,
-        uploads_set,
-        projects_desc_hashmap,
-    ):
+class Application:
+    def __init__(self, pool):
         """
         pool: redis ConnectionPool
         users_hashmap:s
@@ -1050,13 +1040,13 @@ class MainApp:
         assert isinstance(pool, redis.ConnectionPool), "pool should be a Redis ConnectionPool"
 
         self.redis = redis.Redis(connection_pool=pool)
-        self.users_hashmap = users_hashmap
-        self.users_set = users_set
-        self.users_id = users_id
-        self.projects_set = projects_set
-        self.current_project = current_project
-        self.uploads_set = uploads_set
-        self.projects_desc_hashmap = projects_desc_hashmap
+        self.users_hashmap = jobqueue_config.USERS_HASHMAP
+        self.users_set = jobqueue_config.USERS_SET
+        self.users_id = jobqueue_config.USERS_ID
+        self.projects_set = jobqueue_config.PROJECTS_SORTED_SET
+        self.current_project = jobqueue_config.CURRENT_PROJECT
+        self.uploads_set = jobqueue_config.UPLOADS_SORTED_SET
+        self.projects_desc_hashmap = jobqueue_config.PROJECTS_DESC_HASHMAP
         # check if we are able to talk to redis
         assert self.redis.ping(), "Can not Ping redis server"
 
@@ -1121,7 +1111,7 @@ class MainApp:
         payload = {"username": user_name, "userid": user_id}
         if user_id:
             try:
-                return jwt.encode(payload, server_config.jobs.jwt, algorithm="HS256")
+                return jwt.encode(payload, jobqueue_config.jwt, algorithm="HS256")
             except Exception as ex:
                 print("Error issue_jwt => ", ex)
                 pass
@@ -1131,7 +1121,7 @@ class MainApp:
     # if the token is valid then user is verified
     def verify_jwt(self, encoded_jwt):
         try:
-            return jwt.decode(encoded_jwt, server_config.jobs.jwt, algorithms="HS256")
+            return jwt.decode(encoded_jwt, jobqueue_config.jwt, algorithms="HS256")
         except Exception:
             pass
         return None
@@ -1253,20 +1243,7 @@ class MainApp:
         )
 
 
-# get redis host, port, and db from Conf object
-redis_pool = redis.ConnectionPool(**server_config.redis.dict())
-
-pipe_producer = PipeTasksProducer(redis_pool)
-
-model_producer = ModelsTasksProducer(redis_pool)
-
-main_app = MainApp(
-    redis_pool,
-    server_config.jobs.USERS_HASHMAP,
-    server_config.jobs.USERS_SET,
-    server_config.jobs.USERS_ID,
-    server_config.jobs.PROJECTS_SORTED_SET,
-    server_config.jobs.CURRENT_PROJECT,
-    server_config.jobs.UPLOADS_SORTED_SET,
-    server_config.jobs.PROJECTS_DESC_HASHMAP,
-)
+# redis_pool = redis.ConnectionPool(**server_config.redis.dict())
+# pipe_producer = PipeTasksProducer(redis_pool)
+# model_producer = ModelsTasksProducer(redis_pool)
+# main_app = Application( redis_pool)

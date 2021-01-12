@@ -1,25 +1,21 @@
 import os
-import shutil
 
 import sanic.response as res
 from sanic import Sanic, response
 from sanic.exceptions import NotFound
 from sanic_cors import CORS
 
-from carbon.mlmodels.main import spawn_model_workers
-from carbon.mlpipeline.main import spawn_pipe_workers
+# from carbon.mlmodels.main import spawn_model_workers
+# from carbon.mlpipeline.main import spawn_pipe_workers
 
-from ..redis_task import main_app
+from .store import store_backend
 from .config import server_config
 from .routes import root_bp
 from .routes.sse import check_sse_token
 from .utils import printBox
 
-# app version
-version = "2.0.0"
-
-pipe_worker_process_kill = lambda: None
-model_worker_process_kill = lambda: None
+# pipe_worker_process_kill = lambda: None
+# model_worker_process_kill = lambda: None
 
 app = Sanic("episense_backend_app")
 app.blueprint(root_bp)
@@ -94,7 +90,7 @@ async def authorization(request):
                 status=401,
             )
         else:
-            decoded_token = main_app.verify_jwt(request.token)
+            decoded_token = store_backend.verify_jwt(request.token)
             if decoded_token is None:
                 return response.json(
                     {
@@ -143,18 +139,18 @@ async def beforeStart(app, loop):
 # This is run after the server has successfully started
 @app.listener("after_server_start")
 async def notify_server_started(app, loop):
-    printBox(f"Starting app - (episense ai) VERSION={version} (ENV = {server_config.app.env})")
-    global pipe_worker_process_kill
-    pipe_worker_process_kill = spawn_pipe_workers()
-    global model_worker_process_kill
-    model_worker_process_kill = spawn_model_workers()
+    printBox(f"Starting app - (episense ai) (ENV = {server_config.app.env})")
+    # global pipe_worker_process_kill
+    # pipe_worker_process_kill = spawn_pipe_workers()
+    # global model_worker_process_kill
+    # model_worker_process_kill = spawn_model_workers()
 
 
 # This is run before the server starts shuttings down
 @app.listener("before_server_stop")
 async def notify_server_stopping(app, loop):
-    pipe_worker_process_kill()
-    model_worker_process_kill()
+    # pipe_worker_process_kill()
+    # model_worker_process_kill()
     printBox("Shutting down server....................................")
 
 

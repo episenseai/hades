@@ -6,7 +6,7 @@ from concurrent.futures import CancelledError
 from sanic import Blueprint, response
 from sanic.response import stream
 
-from carbon.redis_task import main_app, model_producer, pipe_producer
+from ..store import store_backend, model_producer, pipe_producer
 
 sse_bp = Blueprint("see_events_stream", url_prefix="/sse")
 
@@ -103,7 +103,7 @@ async def sse_token(request):
             info = "Bad request for getting SSE tokens. missing parameters"
             status = 400
         else:
-            proj = main_app.verify_projectid(request.ctx.userid, request.args["projectid"][0])
+            proj = store_backend.verify_projectid(request.ctx.userid, request.args["projectid"][0])
             if proj is None:
                 info = f"Projectid {request.args['projectid'][0]} not associated with the user"
                 status = 400
@@ -134,7 +134,7 @@ def check_sse_token(request):
             # print("bad params")
             return False
         else:
-            proj = main_app.verify_projectid(request.args["userid"][0], request.args["projectid"][0])
+            proj = store_backend.verify_projectid(request.args["userid"][0], request.args["projectid"][0])
             if proj is None:
                 # print("project unknown")
                 return False

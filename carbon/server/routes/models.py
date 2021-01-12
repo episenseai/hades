@@ -1,6 +1,6 @@
 from sanic import Blueprint, response
 
-from carbon.redis_task import main_app, model_producer, pipe_producer
+from ..store import store_backend, model_producer, pipe_producer
 
 models_bp = Blueprint("models_service", url_prefix="/tab/v1/models")
 
@@ -12,7 +12,7 @@ async def model_build(request):
             info = "Bad request. missing parameters"
             status = 400
         else:
-            proj = main_app.verify_projectid(request.ctx.userid, request.args["projectid"][0])
+            proj = store_backend.verify_projectid(request.ctx.userid, request.args["projectid"][0])
             if proj is None:
                 info = f"Projectid {request.args['projectid'][0]} not associated with the user"
                 status = 400
@@ -88,7 +88,7 @@ async def model_results(request):
             info = "Bad request. missing parameters"
             status = 400
         else:
-            proj = main_app.verify_projectid(request.ctx.userid, request.args["projectid"][0])
+            proj = store_backend.verify_projectid(request.ctx.userid, request.args["projectid"][0])
             if proj is None:
                 info = f"Projectid {request.args['projectid'][0]} not associated with the user"
                 status = 400
@@ -131,7 +131,7 @@ async def get_model_result(request):
             info = "Bad request. missing 'modelid' in json body"
             status = 400
         else:
-            proj = main_app.verify_projectid(request.ctx.userid, request.args["projectid"][0])
+            proj = store_backend.verify_projectid(request.ctx.userid, request.args["projectid"][0])
             if proj is None:
                 info = f"Projectid {request.args['projectid'][0]} not associated with the user"
                 status = 400

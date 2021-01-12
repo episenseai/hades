@@ -2,7 +2,7 @@ import os
 
 from sanic import Blueprint, response
 
-from carbon.redis_task import main_app
+from ..store import store_backend
 
 from ..config import server_config
 
@@ -16,7 +16,7 @@ async def signup(request):
         if "userid" not in request.args:
             info = "Bad request. missing parameters"
             status = 400
-        elif not main_app.userid_exists(request.ctx.userid):
+        elif not store_backend.userid_exists(request.ctx.userid):
             info = "Unauthorized request. Userid does not exist."
             status = 401
         elif ":" in request.files["file"][0].name:
@@ -24,12 +24,12 @@ async def signup(request):
             status = 400
         else:
             # print(request.files["file"][0].name)
-            file_name = main_app.timestamp_file_name(request.files["file"][0].name)
+            file_name = store_backend.timestamp_file_name(request.files["file"][0].name)
             folder_name = request.ctx.userid
             # save file to disk
             one_shot_upload(folder_name, file_name, request.files["file"][0].body)
             # save file name to redis
-            main_app.set_upload(request.ctx.userid, file_name)
+            store_backend.set_upload(request.ctx.userid, file_name)
             info = f"Successfully uploaded a new file named {request.files['file'][0].name}"
             status = 201
     except Exception as ex:
@@ -74,7 +74,7 @@ async def list_uploads(request):
             info = "Bad request. missing parameters"
             status = 400
         else:
-            data = main_app.get_uploads(request.ctx.userid)
+            data = store_backend.get_uploads(request.ctx.userid)
             info = "got list of uploaded files"
             status = 200
     except Exception as ex:

@@ -1,6 +1,6 @@
 from sanic import Blueprint, response
 
-from carbon.redis_task import main_app
+from ..store import store_backend
 
 auth_bp = Blueprint("authentication_service", url_prefix="/auth")
 
@@ -13,7 +13,7 @@ async def signup(request):
             info = "Bad request. missing parameters"
             status = 400
         else:
-            userid = main_app.add_user(request.json["username"], request.json["password"])
+            userid = store_backend.add_user(request.json["username"], request.json["password"])
             status = 200
             if userid is None:
                 info = "Username already exits. Try a different one."
@@ -42,7 +42,7 @@ async def login(request):
             info = "Bad request. missing parameters"
             status = 400
         else:
-            jwt = main_app.issue_jwt(request.json["username"], request.json["password"])
+            jwt = store_backend.issue_jwt(request.json["username"], request.json["password"])
             status = 200
             if jwt is None:
                 info = "Either username or password is wrong. New user? Signup to create an account and then try logging in."
