@@ -1,0 +1,27 @@
+{
+  "redis": {
+    "host": "localhost",
+    "port": 6379,
+    "db": 0,
+    "decode_responses": true
+  },
+  "workers": {
+    "num_workers": 2,
+    "worker_names": [
+      "pipeline:worker1",
+      "pipeline:worker2",
+      "pipeline:worker3",
+      "pipeline:worker4",
+      "pipeline:worker5",
+      "pipeline:worker6",
+      "pipeline:worker7",
+      "pipeline:worker8",
+      "pipeline:worker9",
+      "pipeline:worker10"
+    ]
+  },
+  "jobs": {
+    "uploads_folder": "./file_uploads",
+    "temp_folder": "./temp_folder"
+  }
+}
