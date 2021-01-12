@@ -1,6 +1,5 @@
 import os
 
-import sanic.response as res
 from sanic import Sanic, response
 from sanic.exceptions import NotFound
 from sanic_cors import CORS
@@ -10,12 +9,6 @@ from .routes import root_bp
 from .routes.sse import check_sse_token
 from .store import store_backend
 from .utils import printBox
-
-# from carbon.mlmodels.main import spawn_model_workers
-# from carbon.mlpipeline.main import spawn_pipe_workers
-
-# pipe_worker_process_kill = lambda: None
-# model_worker_process_kill = lambda: None
 
 app = Sanic("episense_backend_app")
 app.blueprint(root_bp)
@@ -37,21 +30,12 @@ CORS(
 async def cors_halt_request(request):
     if request.path != "/checks/health":
         if "origin" not in request.headers:
-            return res.json({}, status=404)
+            return response.json({}, status=404)
         if request.headers["origin"] not in server_config.app.CORS_origins:
-            return res.json({}, status=403)
+            return response.json({}, status=403)
 
-
-# @app.middleware("response")
-# async def cors_halt_response(request, response):
-#     if ("origin" in request.headers) and (
-#         request.headers["origin"] not in Conf.app.CORS
-#     ):
-#         return res.json({}, status=200)
 
 ### MIDDLEWARES for the server
-
-
 @app.middleware("request")
 async def authorization(request):
     # print(request.headers)
@@ -140,17 +124,11 @@ async def beforeStart(app, loop):
 @app.listener("after_server_start")
 async def notify_server_started(app, loop):
     printBox(f"Starting app - (episense ai) (ENV = {server_config.app.env})")
-    # global pipe_worker_process_kill
-    # pipe_worker_process_kill = spawn_pipe_workers()
-    # global model_worker_process_kill
-    # model_worker_process_kill = spawn_model_workers()
 
 
 # This is run before the server starts shuttings down
 @app.listener("before_server_stop")
 async def notify_server_stopping(app, loop):
-    # pipe_worker_process_kill()
-    # model_worker_process_kill()
     printBox("Shutting down server....................................")
 
 
@@ -162,7 +140,7 @@ async def notify_server_stopping(app, loop):
 
 @app.exception(NotFound)
 async def ignore_404s(request, exception):
-    return res.json(
+    return response.json(
         {
             "success": False,
             "version": "v1",
@@ -173,6 +151,5 @@ async def ignore_404s(request, exception):
 
 
 ###  serve STATIC files
-
 # Some browsers request it by default (prevent unnecessary 404 on server)
 app.static("/favicon.ico", "./static/favicon.ico", name="favicon", content_type="image/x-icon")
