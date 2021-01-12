@@ -981,6 +981,8 @@ class ModelsTasksConsumer(RedisTasksConsumer):
                 # print("computed model result")
                 modelstatus = "DONE"
                 error_msg = ""
+            except KeyboardInterrupt:
+                break
             except Exception as error:
                 import traceback
 
