@@ -1,11 +1,11 @@
-from carbon.redis_task import PipeTasksConsumer
-from .config import mlpipeline_config
-import redis
 from multiprocessing import Process
-from .stages import consume
-from .stages import prepare
-from .stages import transform
-from .stages import build
+
+import redis
+
+from carbon.redis_task import PipeTasksConsumer
+
+from .config import mlpipeline_config
+from .stages import build, consume, prepare, transform
 
 # funcion to process pipe stages
 func_dict = {

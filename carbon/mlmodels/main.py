@@ -1,31 +1,24 @@
-from carbon.redis_task import ModelsTasksConsumer
-from .config import mlmodels_config
-import redis
 from multiprocessing import Process
 
+import redis
+
+from carbon.redis_task import ModelsTasksConsumer
+
 # Classifier models
-from .classifiers import adaboost
-from .classifiers import bagging
-from .classifiers import bernoulli_nb
+from .classifiers import adaboost, bagging, bernoulli_nb
 from .classifiers import decision_tree as decision_tree_classifier
 from .classifiers import gradient_boost
 from .classifiers import linear_sv as linear_sv_classifier
 from .classifiers import logistic_regression
 from .classifiers import mlp as mlp_classifier
-from .classifiers import multinomial_nb
-from .classifiers import passive_aggressive
-from .classifiers import ridge
-from .classifiers import sgd
-
+from .classifiers import multinomial_nb, passive_aggressive, ridge, sgd
+from .config import mlmodels_config
 # Regression models
 from .regressors import decision_tree as decision_tree_regressor
 from .regressors import k_neighbors
 from .regressors import linear_sv as linear_sv_regressor
 from .regressors import mlp as mlp_regressor
-from .regressors import nu_sv
-from .regressors import radius_neighbors
-from .regressors import sgd_nystroem
-from .regressors import theilsen
+from .regressors import nu_sv, radius_neighbors, sgd_nystroem, theilsen
 
 # mod_consumer = ModelsTasksConsumer(redis_pool)
 

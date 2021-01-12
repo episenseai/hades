@@ -1,10 +1,18 @@
 from pprint import pprint
+
+
 def test_func(config):
     print("started processing model job data")
     pprint(config)
     if config["model_type"] == "regression":
         result_dict = {
-            "metrics": {"val": 0.72, "r2": 20, "rmse": 30, "mae": 213, "msle": 389},
+            "metrics": {
+                "val": 0.72,
+                "r2": 20,
+                "rmse": 30,
+                "mae": 213,
+                "msle": 389
+            },
             "pt": {
                 "p": [
                     223,
@@ -54,7 +62,9 @@ def test_func(config):
         }
     if config["model_type"] == "2-classifier":
         result_dict = {
-            "metrics": {"val": 0.456},
+            "metrics": {
+                "val": 0.456
+            },
             "cm": [[724, 1], [7, 136]],
             "roc": {
                 "x": [
@@ -104,7 +114,9 @@ def test_func(config):
         }
     if config["model_type"] == "n-classifier":
         result_dict = {
-            "metrics": {"val": 0.456},
+            "metrics": {
+                "val": 0.456
+            },
             "classes": [
                 "account_balance",
                 "contact",

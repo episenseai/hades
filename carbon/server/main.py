@@ -1,5 +1,5 @@
-from .config import server_config
 from .app import app
+from .config import server_config
 
 if __name__ == "__main__":
     import warnings

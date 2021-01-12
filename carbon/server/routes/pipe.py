@@ -1,4 +1,5 @@
 from sanic import Blueprint, response
+
 from carbon.redis_task import main_app, pipe_producer
 
 pipe_bp = Blueprint("pipe_service", url_prefix="/tab/v1/pipe")

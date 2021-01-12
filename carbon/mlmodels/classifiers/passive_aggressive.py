@@ -1,19 +1,20 @@
 from sklearn.linear_model import PassiveAggressiveClassifier
+from sklearn.metrics import confusion_matrix
+from sklearn.model_selection import GridSearchCV
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import StandardScaler
+
 from carbon.mlmodels.utils import (
+    deliverformattedResultClf,
+    deliverRoCResult,
     finalFeatureListGenerator,
     finaltypeOfColumnUserUpdated,
-    loadData,
     labelEncodeCategoricalVarToNumbers,
-    splitTrainTestdataset,
-    deliverRoCResult,
-    deliverformattedResultClf,
-    rocCurveforClassDecisionFunction,
+    loadData,
     metricResultMultiClassifier,
+    rocCurveforClassDecisionFunction,
+    splitTrainTestdataset,
 )
-from sklearn.model_selection import GridSearchCV
-from sklearn.metrics import confusion_matrix
 
 # from pprint import pprint
 # from datetime import datetime

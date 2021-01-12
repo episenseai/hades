@@ -1,12 +1,16 @@
-import pandas as pd
+import codecs
+import tempfile
+import time
+from random import sample
 from zipfile import ZipFile
-from sklearn.model_selection import train_test_split, cross_validate
+
 import matplotlib.pyplot as plt
+import pandas as pd
+import sklearn.metrics
+from sklearn.compose import ColumnTransformer
+from sklearn.impute import SimpleImputer
 from sklearn.metrics import (
-    roc_curve,
     auc,
-)
-from sklearn.metrics import (
     explained_variance_score,
     max_error,
     mean_absolute_error,
@@ -14,17 +18,13 @@ from sklearn.metrics import (
     mean_squared_log_error,
     median_absolute_error,
     r2_score,
+    roc_curve,
 )
-import sklearn.metrics
+from sklearn.model_selection import cross_validate, train_test_split
 from sklearn.pipeline import Pipeline
-from sklearn.compose import ColumnTransformer
-from sklearn.impute import SimpleImputer
 from sklearn.preprocessing import LabelEncoder, OneHotEncoder
+
 from .config import mlmodels_config
-from random import sample
-import tempfile
-import time
-import codecs
 
 # from pprint import pprint
 

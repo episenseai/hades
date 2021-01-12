@@ -1,6 +1,7 @@
-from pydantic import BaseModel, root_validator
 from pathlib import Path
 from typing import List
+
+from pydantic import BaseModel, root_validator
 from pydantic.types import PositiveInt
 
 config_path = Path('configs/mlmodels.json')

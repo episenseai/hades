@@ -1,5 +1,6 @@
 from sanic import Blueprint, response
-from carbon.redis_task import main_app, pipe_producer, model_producer
+
+from carbon.redis_task import main_app, model_producer, pipe_producer
 
 models_bp = Blueprint("models_service", url_prefix="/tab/v1/models")
 

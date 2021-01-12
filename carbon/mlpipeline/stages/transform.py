@@ -1,7 +1,4 @@
-from carbon.mlpipeline.utils import (
-    csvFileSelector,
-    featureListGenerator,
-)
+from carbon.mlpipeline.utils import csvFileSelector, featureListGenerator
 
 
 def process(config):

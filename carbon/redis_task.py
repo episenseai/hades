@@ -1,16 +1,18 @@
-from .server.config import server_config, regressors, classifiers, multi_classifiers
-import redis
-import json
-import pickle
 import base64
-import time
-import gzip
-import uuid
-import hashlib
-from collections import namedtuple
-import jwt
 import datetime
+import gzip
+import hashlib
+import json
 import os
+import pickle
+import time
+import uuid
+from collections import namedtuple
+
+import jwt
+import redis
+
+from .server.config import classifiers, multi_classifiers, regressors, server_config
 
 
 class RedisTasks:
@@ -21,9 +23,7 @@ class RedisTasks:
             "pipe" -> for pipe jobs
             "models" -> individual model build jobs
         """
-        assert isinstance(
-            pool, redis.ConnectionPool
-        ), "pool should be a Redis ConnectionPool"
+        assert isinstance(pool, redis.ConnectionPool), "pool should be a Redis ConnectionPool"
 
         self.redis = redis.Redis(connection_pool=pool)
         self.jobq = f"{queue}:{server_config.jobs.DB_GEN}"
@@ -41,9 +41,7 @@ class RedisTasks:
                 self.redis.xadd(q, {"OK": "OK"})
             # check if jobq is a stream
             assert self.redis.type(q) == "stream", f"jobq_queue = {q} nust be a stream"
-            if not any(
-                [q_cg["name"] == cg for q_cg in self.redis.xinfo_groups(self.jobq)]
-            ):
+            if not any([q_cg["name"] == cg for q_cg in self.redis.xinfo_groups(self.jobq)]):
                 # create consumer group
                 self.redis.xgroup_create(q, cg)
 
@@ -86,9 +84,7 @@ class RedisTasks:
             raise UnpickleError
 
     def encode(self, obj):
-        return gzip.compress(
-            base64.b64encode(gzip.compress(pickle.dumps(obj, protocol=4)))
-        )
+        return gzip.compress(base64.b64encode(gzip.compress(pickle.dumps(obj, protocol=4))))
 
     def decode(self, bytes):
         return pickle.loads(gzip.decompress(base64.b64decode(gzip.decompress(bytes))))
@@ -268,7 +264,11 @@ class RedisTasksConsumer(RedisTasks):
         self._item = None
         # print("getting job for ", consumer_name, self.jobq, self.jobq_CG)
         return self.redis.xreadgroup(
-            self.jobq_CG, consumer_name, {self.jobq: nextjob}, count=1, block=0,
+            self.jobq_CG,
+            consumer_name,
+            {self.jobq: nextjob},
+            count=1,
+            block=0,
         )[0][1]
 
     def get_item(self, consumer_name):
@@ -380,7 +380,10 @@ class PipeTasksProducer(RedisTasksProducer):
                     pipe.hsetnx(
                         result_hashmap,
                         "consume:GET",
-                        self.to_JSON({"stage": "consume:GET", "data": {}}),
+                        self.to_JSON({
+                            "stage": "consume:GET",
+                            "data": {}
+                        }),
                     )
                     pipe.hsetnx(result_hashmap, "current.stage", "consume:GET")
                     pipe.hsetnx(result_hashmap, "pipe:STATUS", 0)
@@ -391,9 +394,7 @@ class PipeTasksProducer(RedisTasksProducer):
                     break
                 except redis.WatchError:
                     if watch_error_count > 100:
-                        raise Exception(
-                            "Something fatal happened while creating a new project"
-                        )
+                        raise Exception("Something fatal happened while creating a new project")
                         break
                     if watch_error_count > 20:
                         time.sleep(0.1)
@@ -428,9 +429,7 @@ class PipeTasksProducer(RedisTasksProducer):
                     break
                 except redis.WatchError:
                     if watch_error_count > 100:
-                        raise Exception(
-                            "Something fatal happened while creating a new project"
-                        )
+                        raise Exception("Something fatal happened while creating a new project")
                         break
                     if watch_error_count > 20:
                         time.sleep(0.1)
@@ -548,13 +547,12 @@ class PipeTasksConsumer(RedisTasksConsumer):
 
             # ignore the job, ack it and get the next job
             if (
-                # check pipe:STATUS
+                    # check pipe:STATUS
                 (int(pipe_status) != 0)
-                # stage pulled from the job_queue is not the active stage of the pipeline
-                or current_stage != self.stage
-                # current_jobid supercedes the job pulled from the job queue
-                or current_jobid > self.jobid
-            ):
+                    # stage pulled from the job_queue is not the active stage of the pipeline
+                    or current_stage != self.stage
+                    # current_jobid supercedes the job pulled from the job queue
+                    or current_jobid > self.jobid):
                 ack = self.xack()
                 print("stale items - pull job")
                 continue
@@ -588,13 +586,12 @@ class PipeTasksConsumer(RedisTasksConsumer):
 
                     # check if the job is superceded by some other job
                     if (
-                        # check pipe:STATUS
+                            # check pipe:STATUS
                         (int(pipe_status) != 0)
-                        # stage pulled from the job_queue is not the active stage of the pipeline
-                        or current_stage != self.stage
-                        # current_jobid supercedes the job pulled from the job queue
-                        or current_jobid != self.jobid
-                    ):
+                            # stage pulled from the job_queue is not the active stage of the pipeline
+                            or current_stage != self.stage
+                            # current_jobid supercedes the job pulled from the job queue
+                            or current_jobid != self.jobid):
                         break
 
                     # now we can put the pipeline back into buffered mode with MULTI
@@ -638,9 +635,7 @@ class PipeTasksConsumer(RedisTasksConsumer):
     def run(self, consumer_name):
         while True:
             try:
-                print(
-                    "─────────────────────────   pulling pipe  job   ─────────────────────────"
-                )
+                print("─────────────────────────   pulling pipe  job   ─────────────────────────")
                 self.pull_job(consumer_name)
                 print("pulled pipe Job")
                 result = self.func_dict[self.stage](self.stage_data)
@@ -659,7 +654,6 @@ model_type_keys = {
     "n-classifier": multi_classifiers.models,
     "regression": regressors.models,
 }
-
 
 
 class ModelsTasksProducer(RedisTasksProducer):
@@ -685,13 +679,11 @@ class ModelsTasksProducer(RedisTasksProducer):
         """
         # config data used for model building
         pipe_result_hashmap = (
-            f"{user_id}:{project_id}:{server_config.jobs.pipe_queue}:{server_config.jobs.DB_GEN}"
-        )
+            f"{user_id}:{project_id}:{server_config.jobs.pipe_queue}:{server_config.jobs.DB_GEN}")
 
         # hashmap to store the pipe results
         model_result_hashmap = (
-            f"{user_id}:{project_id}:{server_config.jobs.models_queue}:{server_config.jobs.DB_GEN}"
-        )
+            f"{user_id}:{project_id}:{server_config.jobs.models_queue}:{server_config.jobs.DB_GEN}")
 
         result = None
         with self.redis.pipeline() as pipe:
@@ -700,12 +692,12 @@ class ModelsTasksProducer(RedisTasksProducer):
                 try:
                     pipe.watch(pipe_result_hashmap, model_result_hashmap)
                     current_stage, pipe_status = pipe.hmget(
-                        pipe_result_hashmap, "current.stage", "pipe:STATUS",
+                        pipe_result_hashmap,
+                        "current.stage",
+                        "pipe:STATUS",
                     )
 
-                    if (int(pipe_status) == 0) and (
-                        current_stage == self.current_stage
-                    ):
+                    if (int(pipe_status) == 0) and (current_stage == self.current_stage):
                         # Submission of model jobs and setting of pipe status are executed as
                         # a single transaction
                         pipe.multi()
@@ -722,9 +714,7 @@ class ModelsTasksProducer(RedisTasksProducer):
                                 },
                             )
                             mss[f"{user_id}:{project_id}:{model.modelid}"] = 0
-                            pipe.hset(
-                                model_result_hashmap, f"{model.modelid}:STATUS", "WAIT"
-                            )
+                            pipe.hset(model_result_hashmap, f"{model.modelid}:STATUS", "WAIT")
                         pipe.zadd(self.models_sorted_set, mss)
                         pipe.hset(pipe_result_hashmap, "pipe:STATUS", "1")
                         pipe.hset(model_result_hashmap, "model_type", modelType)
@@ -747,8 +737,7 @@ class ModelsTasksProducer(RedisTasksProducer):
     # returns a dictionary of { modelid: status }
     def get_model_status(self, user_id, project_id):
         model_result_hashmap = (
-            f"{user_id}:{project_id}:{server_config.jobs.models_queue}:{server_config.jobs.DB_GEN}"
-        )
+            f"{user_id}:{project_id}:{server_config.jobs.models_queue}:{server_config.jobs.DB_GEN}")
         list_of_modelid = self.get_models_list(user_id, project_id)
         return dict(
             zip(
@@ -757,22 +746,17 @@ class ModelsTasksProducer(RedisTasksProducer):
                     model_result_hashmap,
                     [f"{modelid}:STATUS" for modelid in list_of_modelid],
                 ),
-            )
-        )
+            ))
 
     # returns a dictionary of { modelid: data }
     def get_model_data(self, user_id, project_id, list_of_modelid):
         model_result_hashmap = (
-            f"{user_id}:{project_id}:{server_config.jobs.models_queue}:{server_config.jobs.DB_GEN}"
-        )
+            f"{user_id}:{project_id}:{server_config.jobs.models_queue}:{server_config.jobs.DB_GEN}")
         res = self.redis.hmget(
             model_result_hashmap,
-            (
-                [f"{modelid}:DATA" for modelid in list_of_modelid]
-                + [f"{modelid}:STATUS" for modelid in list_of_modelid]
-                + [f"{modelid}:ERROR" for modelid in list_of_modelid]
-                + ["optimizeUsing", "model_type"]
-            ),
+            ([f"{modelid}:DATA" for modelid in list_of_modelid]
+             + [f"{modelid}:STATUS" for modelid in list_of_modelid]
+             + [f"{modelid}:ERROR" for modelid in list_of_modelid] + ["optimizeUsing", "model_type"]),
         )
         model_type = res[-1]
         optimizeUsing = res[-2]
@@ -825,7 +809,6 @@ class ModelsTasksConsumer(RedisTasksConsumer):
         modelid:ERROR -> error message if any
         modelid:PICKLE -> path to pickled model
     """
-
     def __init__(self, pool, model_func_dict):
         # print("instantiating models task consumer......")
         super().__init__(pool, server_config.jobs.models_queue)
@@ -865,9 +848,7 @@ class ModelsTasksConsumer(RedisTasksConsumer):
                             "modelid": self._item[1]["modelid"],
                             "modelname": self._item[1]["modelname"],
                             "model_type": self._item[1]["model_type"],
-                            "model_result_hashmap": self._item[1][
-                                "model_result_hashmap"
-                            ],
+                            "model_result_hashmap": self._item[1]["model_result_hashmap"],
                             "data": self.from_JSON(res),
                         }
                         break
@@ -934,9 +915,7 @@ class ModelsTasksConsumer(RedisTasksConsumer):
 
                     # pickle the model
                     if modelstatus == "DONE":
-                        stored = self.pickle_model(
-                            folder_name, file_path, model_to_pickle
-                        )
+                        stored = self.pickle_model(folder_name, file_path, model_to_pickle)
                         if not stored:
                             pipe.multi()
                             pipe.hset(
@@ -944,16 +923,12 @@ class ModelsTasksConsumer(RedisTasksConsumer):
                                 f"{modelid}:ERROR",
                                 f"error during pickling of the model {modelid}",
                             )
-                            pipe.hset(
-                                model_result_hashmap, f"{modelid}:STATUS", "ERROR"
-                            )
+                            pipe.hset(model_result_hashmap, f"{modelid}:STATUS", "ERROR")
                             pipe.execute()
                     break
                 except redis.WatchError:
                     if error_count > 100:
-                        raise Exception(
-                            "Something fatal happened while submitting result of model job"
-                        )
+                        raise Exception("Something fatal happened while submitting result of model job")
                         break
                     if error_count > 20:
                         time.sleep(0.1)
@@ -985,9 +960,7 @@ class ModelsTasksConsumer(RedisTasksConsumer):
     def run(self, consumer_name):
         while True:
             try:
-                print(
-                    "─────────────────────────   pulling model job   ─────────────────────────"
-                )
+                print("─────────────────────────   pulling model job   ─────────────────────────")
                 job = self.pull_job(consumer_name)
                 # print(job)
                 print(
@@ -1006,9 +979,7 @@ class ModelsTasksConsumer(RedisTasksConsumer):
                     "data": job["data"],
                 }
                 # (result_dict, model_to_pickle) = test_func(config)
-                (result_dict, model_to_pickle) = self.model_func_dict[job["modelid"]](
-                    config
-                )
+                (result_dict, model_to_pickle) = self.model_func_dict[job["modelid"]](config)
                 # print("computed model result")
                 modelstatus = "DONE"
                 error_msg = ""
@@ -1076,9 +1047,7 @@ class MainApp:
         uploads_set (sorted set), lexicographical queries
             0 user_id:{timestamp}__{filename}
         """
-        assert isinstance(
-            pool, redis.ConnectionPool
-        ), "pool should be a Redis ConnectionPool"
+        assert isinstance(pool, redis.ConnectionPool), "pool should be a Redis ConnectionPool"
 
         self.redis = redis.Redis(connection_pool=pool)
         self.users_hashmap = users_hashmap
@@ -1109,18 +1078,14 @@ class MainApp:
                         pipe.multi()
                         pipe.sadd(self.users_set, user_name)
                         pipe.sadd(self.users_id, user_id)
-                        pipe.hset(
-                            self.users_hashmap, user_name, f"{user_id}:{password_hash}"
-                        )
+                        pipe.hset(self.users_hashmap, user_name, f"{user_id}:{password_hash}")
                         pipe.execute()
                         break
                     user_id = None
                     break
                 except redis.WatchError:
                     if watch_error_count > 100:
-                        raise Exception(
-                            "Something fatal happened while creating a new user account."
-                        )
+                        raise Exception("Something fatal happened while creating a new user account.")
                         break
                     if watch_error_count > 20:
                         time.sleep(0.1)
@@ -1131,7 +1096,7 @@ class MainApp:
     def get_user(self, user_name):
         res = self.redis.hget(self.users_hashmap, user_name)
         if res:
-            return User(*res.split(sep=":")) # type: ignore
+            return User(*res.split(sep=":"))  # type: ignore
         return None
 
     def get_id(self, user_name):
@@ -1202,9 +1167,7 @@ class MainApp:
                     continue
                 except redis.WatchError:
                     if watch_error_count > 100:
-                        raise Exception(
-                            "Something fatal happened while creating a new project"
-                        )
+                        raise Exception("Something fatal happened while creating a new project")
                         break
                     if watch_error_count > 20:
                         time.sleep(0.1)
@@ -1213,29 +1176,27 @@ class MainApp:
 
     def projects_list(self, user_id):
         projects = self.redis.zrangebylex(
-            self.projects_set, f"[{user_id}:", f"[{user_id}:\xff",
+            self.projects_set,
+            f"[{user_id}:",
+            f"[{user_id}:\xff",
         )
         if not projects:
             return projects
         projects = [proj.split(sep=":") for proj in projects]
-        projects_desc = self.redis.hmget(
-            self.projects_desc_hashmap, [f"{p[0]}:{p[1]}" for p in projects]
-        )
+        projects_desc = self.redis.hmget(self.projects_desc_hashmap, [f"{p[0]}:{p[1]}" for p in projects])
         # print(projects_desc)
         projects = [(p + [projects_desc[i]]) for i, p in enumerate(projects)]
         # print(projects)
         return sorted(
-            [
-                {
-                    "projectid": p[1],
-                    "projectname": p[3],
-                    "timestamp": datetime.datetime.utcfromtimestamp(
-                        int(p[2])
-                    ).isoformat(),
-                    "projectdesc": p[4],
-                }
-                for p in filter(lambda p: p[0] == user_id, projects,)
-            ],
+            [{
+                "projectid": p[1],
+                "projectname": p[3],
+                "timestamp": datetime.datetime.utcfromtimestamp(int(p[2])).isoformat(),
+                "projectdesc": p[4],
+            } for p in filter(
+                lambda p: p[0] == user_id,
+                projects,
+            )],
             key=lambda x: x["timestamp"],
             reverse=True,
         )
@@ -1250,7 +1211,9 @@ class MainApp:
 
     def verify_projectid(self, userid, projectid):
         res = projects = self.redis.zrangebylex(
-            self.projects_set, f"[{userid}:{projectid}:", f"[{userid}:{projectid}:\xff",
+            self.projects_set,
+            f"[{userid}:{projectid}:",
+            f"[{userid}:{projectid}:\xff",
         )
         if not res:
             return None
@@ -1266,29 +1229,25 @@ class MainApp:
             params:
                 file_with_timestamp: "{timestamp}__test_xyz.csv"
         """
-        return self.redis.zadd(
-            self.uploads_set, {f"{user_id}:{file_with_timestamp}": 0}
-        )
+        return self.redis.zadd(self.uploads_set, {f"{user_id}:{file_with_timestamp}": 0})
 
     def get_uploads(self, user_id):
         uploads = self.redis.zrangebylex(
-            self.uploads_set, f"[{user_id}:", f"[{user_id}:\xff",
+            self.uploads_set,
+            f"[{user_id}:",
+            f"[{user_id}:\xff",
         )
         if not uploads:
             return uploads
         return sorted(
-            [
-                {
-                    "timestamp": datetime.datetime.utcfromtimestamp(
-                        int(p[1].split("___", maxsplit=1)[0])
-                    ).isoformat(),
-                    "filename": p[1].split("___", maxsplit=1)[1],
-                    "filepath": f"{user_id}/{p[1]}",
-                }
-                for p in filter(
-                    lambda p: p[0] == user_id, [up.split(sep=":") for up in uploads]
-                )
-            ],
+            [{
+                "timestamp":
+                    datetime.datetime.utcfromtimestamp(int(p[1].split("___", maxsplit=1)[0])).isoformat(),
+                "filename":
+                    p[1].split("___", maxsplit=1)[1],
+                "filepath":
+                    f"{user_id}/{p[1]}",
+            } for p in filter(lambda p: p[0] == user_id, [up.split(sep=":") for up in uploads])],
             key=lambda p: p["timestamp"],
             reverse=True,
         )

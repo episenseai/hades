@@ -1,25 +1,25 @@
+from sklearn.linear_model import LogisticRegression
+from sklearn.metrics import confusion_matrix
+from sklearn.model_selection import GridSearchCV
+from sklearn.pipeline import Pipeline
+from sklearn.preprocessing import StandardScaler
+
 from carbon.mlmodels.utils import (
+    deliverformattedResultClf,
+    deliverRoCResult,
     finalFeatureListGenerator,
     finaltypeOfColumnUserUpdated,
-    loadData,
     labelEncodeCategoricalVarToNumbers,
-    splitTrainTestdataset,
-    deliverRoCResult,
-    deliverformattedResultClf,
-    rocCurveforClassPredictProba,
+    loadData,
     metricResultMultiClassifier,
+    rocCurveforClassPredictProba,
+    splitTrainTestdataset,
 )
-from sklearn.model_selection import GridSearchCV
-from sklearn.metrics import confusion_matrix
 
 # from pprint import pprint
 # from datetime import datetime
 
 # from Models.config import config1, config2, config3
-
-from sklearn.linear_model import LogisticRegression
-from sklearn.pipeline import Pipeline
-from sklearn.preprocessing import StandardScaler
 
 
 def build(confign):

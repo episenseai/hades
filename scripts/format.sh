@@ -4,4 +4,4 @@ set -e
 set -x
 
 yapf carbon tests --in-place --recursive
-isort carbon tests scripts --check-only
+isort carbon tests scripts

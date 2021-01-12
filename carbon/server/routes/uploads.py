@@ -1,7 +1,10 @@
-from sanic import Blueprint, response
 import os
-from ..config import server_config
+
+from sanic import Blueprint, response
+
 from carbon.redis_task import main_app
+
+from ..config import server_config
 
 uploads_bp = Blueprint("uploads_service", url_prefix="/uploads")
 

@@ -1,19 +1,20 @@
-from sklearn.preprocessing import MaxAbsScaler
+from sklearn.metrics import confusion_matrix
+from sklearn.model_selection import GridSearchCV
 from sklearn.naive_bayes import MultinomialNB
 from sklearn.pipeline import Pipeline
+from sklearn.preprocessing import MaxAbsScaler
+
 from carbon.mlmodels.utils import (
+    deliverformattedResultClf,
+    deliverRoCResult,
     finalFeatureListGenerator,
     finaltypeOfColumnUserUpdated,
-    loadData,
     labelEncodeCategoricalVarToNumbers,
-    splitTrainTestdataset,
-    deliverRoCResult,
-    deliverformattedResultClf,
-    rocCurveforClassPredictProba,
+    loadData,
     metricResultMultiClassifier,
+    rocCurveforClassPredictProba,
+    splitTrainTestdataset,
 )
-from sklearn.model_selection import GridSearchCV
-from sklearn.metrics import confusion_matrix
 
 # from pprint import pprint
 

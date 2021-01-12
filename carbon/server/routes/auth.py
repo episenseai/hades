@@ -1,4 +1,5 @@
 from sanic import Blueprint, response
+
 from carbon.redis_task import main_app
 
 auth_bp = Blueprint("authentication_service", url_prefix="/auth")

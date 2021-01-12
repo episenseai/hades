@@ -1,17 +1,18 @@
 from sklearn.ensemble import BaggingClassifier
+from sklearn.metrics import confusion_matrix
+from sklearn.model_selection import GridSearchCV
+
 from carbon.mlmodels.utils import (
+    deliverformattedResultClf,
+    deliverRoCResult,
     finalFeatureListGenerator,
     finaltypeOfColumnUserUpdated,
-    loadData,
     labelEncodeCategoricalVarToNumbers,
-    splitTrainTestdataset,
-    deliverRoCResult,
-    deliverformattedResultClf,
-    rocCurveforClassPredictProba,
+    loadData,
     metricResultMultiClassifier,
+    rocCurveforClassPredictProba,
+    splitTrainTestdataset,
 )
-from sklearn.model_selection import GridSearchCV
-from sklearn.metrics import confusion_matrix
 
 # from pprint import pprint
 # from datetime import datetime

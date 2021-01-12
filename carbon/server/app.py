@@ -1,16 +1,19 @@
-from sanic import Sanic, response
-import sanic.response as res
-from sanic_cors import CORS
-from sanic.exceptions import NotFound
-from .config import server_config
-from .routes import root_bp
-from ..redis_task import main_app
-from .utils import printBox
-from carbon.mlpipeline.main import spawn_pipe_workers
-from carbon.mlmodels.main import spawn_model_workers
-from .routes.sse import check_sse_token
 import os
 import shutil
+
+import sanic.response as res
+from sanic import Sanic, response
+from sanic.exceptions import NotFound
+from sanic_cors import CORS
+
+from carbon.mlmodels.main import spawn_model_workers
+from carbon.mlpipeline.main import spawn_pipe_workers
+
+from ..redis_task import main_app
+from .config import server_config
+from .routes import root_bp
+from .routes.sse import check_sse_token
+from .utils import printBox
 
 # app version
 version = "2.0.0"

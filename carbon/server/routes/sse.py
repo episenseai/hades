@@ -1,10 +1,12 @@
+import asyncio
+import base64
+import uuid
+from concurrent.futures import CancelledError
+
 from sanic import Blueprint, response
 from sanic.response import stream
-import asyncio
-from concurrent.futures import CancelledError
-import uuid
-from carbon.redis_task import main_app, pipe_producer, model_producer
-import base64
+
+from carbon.redis_task import main_app, model_producer, pipe_producer
 
 sse_bp = Blueprint("see_events_stream", url_prefix="/sse")
 
