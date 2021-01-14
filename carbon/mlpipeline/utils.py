@@ -7,6 +7,7 @@ from zipfile import ZipFile
 import matplotlib.pyplot as plt
 import pandas as pd
 import sklearn.metrics
+from pandas.api.types import is_datetime64_any_dtype, is_numeric_dtype, is_string_dtype
 from sklearn.compose import ColumnTransformer
 from sklearn.impute import SimpleImputer
 from sklearn.metrics import (
@@ -42,8 +43,14 @@ def typeOfColumn1(dfColumn):
             return "Category"
         else:
             return "Text"
-    else:
+    elif dfColumn.dtype == bool:
+        return "Category"
+    elif is_datetime64_any_dtype(dfColumn):
+        return "Text"
+    elif is_numeric_dtype(dfColumn):
         return "Number"
+    else:
+        return "Text"
 
 
 def typeOfColumnUserUpdated(config):

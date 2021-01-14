@@ -59,7 +59,7 @@ def main_task_wrapper(func, arg, result_queue: Queue):
         from random import randint
 
         # slow down the task for debugging
-        time.sleep(randint(20, 30))
+        # time.sleep(randint(20, 30))
         result_queue.put(TaskResult(result=result), block=True, timeout=120)
     except Exception as ex:
         tb = traceback.format_exc()
