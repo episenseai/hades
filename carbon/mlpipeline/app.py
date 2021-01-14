@@ -1,7 +1,5 @@
 from multiprocessing import Process
 
-import redis
-
 from ..store.backend.redis import PipeTasksConsumer
 from .config import mlpipeline_config
 from .stages import build, consume, prepare, transform
@@ -25,8 +23,7 @@ def pipe_consumer_func(worker):
     import warnings
     warnings.simplefilter("ignore")
 
-    redis_pool = redis.ConnectionPool(**mlpipeline_config.redis.dict())
-    consumer = PipeTasksConsumer(redis_pool, func_dict)
+    consumer = PipeTasksConsumer(mlpipeline_config.redis.dict(), func_dict)
     try:
         consumer.run(worker)
     except Exception as ex:

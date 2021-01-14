@@ -6,8 +6,11 @@ import json
 import os
 import pickle
 import time
+import traceback
 import uuid
 from collections import namedtuple
+from multiprocessing import Process, Queue
+from typing import Any, Optional, Tuple
 
 import jwt
 import redis
@@ -34,17 +37,110 @@ model_type_keys = {
 }
 
 
+class TaskResult:
+    def __init__(self, result: Optional[Any] = None, exception=None):
+        self.result = result
+        self.exception = exception
+
+
+class TaskCancelled:
+    def __init__(self, status: bool = False, exception: Optional[Tuple[Exception, str]] = None):
+        self.status = status
+        self.exception = exception
+
+
+def main_task_wrapper(func, arg, result_queue: Queue):
+    import warnings
+    warnings.simplefilter("ignore")
+
+    try:
+        result = func(arg)
+        import time
+        from random import randint
+
+        # slow down the task for debugging
+        time.sleep(randint(20, 30))
+        result_queue.put(TaskResult(result=result), block=True, timeout=120)
+    except Exception as ex:
+        tb = traceback.format_exc()
+        result_queue.put(TaskResult(exception=(ex, tb)), block=True, timeout=120)
+
+
+def status_task_wrapper(result_queue: Queue, redis_config_dict, cancelled_hashmap, jobid):
+    import time
+
+    import redis
+    try:
+        pool = redis.Redis(connection_pool=redis.ConnectionPool(**redis_config_dict))
+        while True:
+            cancelled_status = int(pool.hget(cancelled_hashmap, jobid))  # type: ignore
+            if cancelled_status != 0:
+                status = True
+                break
+            else:
+                time.sleep(2)
+        result_queue.put(TaskCancelled(status=status), block=True, timeout=120)
+    except Exception as ex:
+        tb = traceback.format_exc()
+        result_queue.put(TaskCancelled(exception=(ex, tb)), block=True, timeout=120)
+
+
+def execute_task(func, arg, redis_config, cancelled_hashmap, jobid):
+    result_queue = Queue()
+    main_task = Process(target=main_task_wrapper, args=(
+        func,
+        arg,
+        result_queue,
+    ))
+    main_task.start()
+    status_task = Process(target=status_task_wrapper,
+                          args=(
+                              result_queue,
+                              redis_config,
+                              cancelled_hashmap,
+                              jobid,
+                          ))
+    status_task.start()
+    result = result_queue.get()
+
+    try:
+        for p in [main_task, status_task]:
+            p.kill()
+            p.join()
+    except Exception as ex:
+        print("Exception happened during killing: ", ex)
+
+    if isinstance(result, TaskCancelled):
+        if result.exception:
+            error_msg = f"CANCELLATION ERROR:\n{result.exception[0]}\n{result.exception[1]}"
+            print(error_msg, jobid)
+            # (result: Option[Any], error_msg: str, cancelled: bool, exception: bool)
+            return (None, error_msg, result.status, True)
+        else:
+            error_msg = "TASK CANCELLED"
+            print(error_msg, jobid)
+            return (None, error_msg, result.status, False)
+    else:
+        if result.exception:
+            error_msg = f"TASK ERROR:\n{result.exception[0]}\n{result.exception[1]}"
+            print(error_msg, jobid)
+            return (result.result, error_msg, False, True)
+        else:
+            error_msg = ""
+            return (result.result, error_msg, False, False)
+
+
 class RedisTasks:
-    def __init__(self, pool, queue):
+    def __init__(self, redis_config_dict, queue):
         """
         pool: redis ConnectionPool
         queue: one of:
             "pipe" -> for pipe jobs
             "models" -> individual model build jobs
         """
-        assert isinstance(pool, redis.ConnectionPool), "pool should be a Redis ConnectionPool"
 
-        self.redis = redis.Redis(connection_pool=pool)
+        self.redis_config_dict = redis_config_dict
+        self.redis = redis.Redis(connection_pool=redis.ConnectionPool(**redis_config_dict))
         self.jobq = f"{queue}:{jobqueue_config.DB_GEN}"
         self.jobq_CG = f"CG:{self.jobq}"
         self.deadq = f"dead.{queue}:{jobqueue_config.DB_GEN}"
@@ -269,8 +365,8 @@ class RedisTasksProducer(RedisTasks):
 
 
 class RedisTasksConsumer(RedisTasks):
-    def __init__(self, pool, queue):
-        super().__init__(pool, queue)
+    def __init__(self, redis_config_dict, queue):
+        super().__init__(redis_config_dict, queue)
         self._item = None
         self.pending_jobs = True
 
@@ -309,9 +405,9 @@ class RedisTasksConsumer(RedisTasks):
 
 
 class PipeTasksProducer(RedisTasksProducer):
-    def __init__(self, pool):
+    def __init__(self, redis_config_dict):
         # print("instantiating pipe producer ....")
-        super().__init__(pool, "pipe")
+        super().__init__(redis_config_dict, "pipe")
         lua_job_submit = """
             local jobid =  redis.call('xadd', KEYS[1], '*', 'stage', KEYS[2], 'result_hashmap', KEYS[3])
             local res1 = redis.call('hset', KEYS[3], KEYS[2], ARGV[1])
@@ -497,7 +593,7 @@ class PipeTasksConsumer(RedisTasksConsumer):
         "build:POST": "finalconfig:GET",
     }
 
-    def __init__(self, pool, func_dict):
+    def __init__(self, redis_config_dict, func_dict):
         """
         params:
             pool: RedisConnectionPool
@@ -517,7 +613,7 @@ class PipeTasksConsumer(RedisTasksConsumer):
                 ex: consumer_func(stage_data, file_name) -> config_next_stage
         """
         # print("instantiating pipe task consumer......")
-        super().__init__(pool, jobqueue_config.pipe_queue)
+        super().__init__(redis_config_dict, jobqueue_config.pipe_queue)
         self.stage_data = {}
         self.func_dict = func_dict
 
@@ -658,9 +754,16 @@ class ModelsTasksProducer(RedisTasksProducer):
     current_stage = "finalconfig:GET"
     models_sorted_set = jobqueue_config.MODELS_SORTED_SET
 
-    def __init__(self, pool):
+    def __init__(self, redis_config_dict):
         # print("instantiating modle task producer.....")
-        super().__init__(pool, jobqueue_config.models_queue)
+        super().__init__(redis_config_dict, jobqueue_config.models_queue)
+        lua_modeljob_submit = """
+            local jobid =  redis.call('xadd', KEYS[1], '*', KEYS[2], KEYS[3], KEYS[4], KEYS[5], KEYS[6], KEYS[7], KEYS[8], KEYS[9], KEYS[10], KEYS[11], KEYS[12], KEYS[13], KEYS[14], KEYS[15], KEYS[16], KEYS[17])
+            local res1 = redis.call('hset', KEYS[15], KEYS[18], jobid)
+            local res2 = redis.call('hset', KEYS[17], jobid, 0)
+            return {jobid, res1, res2}
+        """
+        self.modeljob_add = self.redis.register_script(lua_modeljob_submit.strip())
 
     def submit_model_jobs(self, user_id, project_id, modelType, optimizeUsing):
         """
@@ -674,6 +777,8 @@ class ModelsTasksProducer(RedisTasksProducer):
 
         also the list of models is added to
             models_sorted_set -> 0 userid:projectid:modelid
+        use hashmap 'userid:projectid:CANCELLED:DB_GEN' to track cancellations of jobid
+            set(jobids) # use sentinel value 'SENTINEL' while instantiating the set
         """
         # config data used for model building
         pipe_result_hashmap = (
@@ -682,6 +787,8 @@ class ModelsTasksProducer(RedisTasksProducer):
         # hashmap to store the pipe results
         model_result_hashmap = (
             f"{user_id}:{project_id}:{jobqueue_config.models_queue}:{jobqueue_config.DB_GEN}")
+
+        cancelled_hashmap = f"{user_id}:{project_id}:CANCELLED:{jobqueue_config.DB_GEN}"
 
         result = None
         with self.redis.pipeline() as pipe:
@@ -701,23 +808,25 @@ class ModelsTasksProducer(RedisTasksProducer):
                         pipe.multi()
                         mss = {}
                         for model in model_type_keys[modelType]:
-                            pipe.xadd(
-                                self.jobq,
-                                {
-                                    **model.dict(),
-                                    "model_type": modelType,
-                                    "pipe_result_hashmap": pipe_result_hashmap,
-                                    "field_name": "finalconfig:GET",
-                                    "model_result_hashmap": model_result_hashmap,
-                                },
-                            )
+                            self.modeljob_add(client=pipe,
+                                              keys=[
+                                                  self.jobq, 'modelid', model.modelid, 'modelname',
+                                                  model.modelname, 'filename', model.filename, 'model_type',
+                                                  modelType, 'pipe_result_hashmap', pipe_result_hashmap,
+                                                  "field_name", "finalconfig:GET", "model_result_hashmap",
+                                                  model_result_hashmap, "cancelled_hashmap",
+                                                  cancelled_hashmap, f"{model.modelid}:JOBID"
+                                              ])
                             mss[f"{user_id}:{project_id}:{model.modelid}"] = 0
+                        for model in model_type_keys[modelType]:
                             pipe.hset(model_result_hashmap, f"{model.modelid}:STATUS", "WAIT")
                         pipe.zadd(self.models_sorted_set, mss)
                         pipe.hset(pipe_result_hashmap, "pipe:STATUS", "1")
                         pipe.hset(model_result_hashmap, "model_type", modelType)
                         pipe.hset(model_result_hashmap, "optimizeUsing", optimizeUsing)
                         result = pipe.execute()
+                        from devtools import debug
+                        debug(result)
                     break
                 except redis.WatchError:
                     if watch_error_count > 100:
@@ -745,6 +854,41 @@ class ModelsTasksProducer(RedisTasksProducer):
                     [f"{modelid}:STATUS" for modelid in list_of_modelid],
                 ),
             ))
+
+    def cancel_job(self, user_id, project_id, modelid):
+        model_result_hashmap = (
+            f"{user_id}:{project_id}:{jobqueue_config.models_queue}:{jobqueue_config.DB_GEN}")
+        cancelled_hashmap = f"{user_id}:{project_id}:CANCELLED:{jobqueue_config.DB_GEN}"
+        result = None
+        with self.redis.pipeline() as pipe:
+            watch_error_count = 0
+            while True:
+                try:
+                    pipe.watch(model_result_hashmap, cancelled_hashmap)
+                    current_jobid, current_status = pipe.hmget(model_result_hashmap, f"{modelid}:JOBID",
+                                                               f"{modelid}:STATUS")
+                    print(f"current_jobid for cancellation = {current_jobid} {current_status}")
+                    if current_status not in ["ERROR", "DONE", "CANCELLED"]:
+                        pipe.multi()
+                        pipe.hset(cancelled_hashmap, current_jobid, 1)
+                        pipe.hset(model_result_hashmap, f"{modelid}:STATUS", "TRYCANCEL")
+                        result = pipe.execute()
+                        result = (2, result)
+                    elif current_status == "CANCELLED":
+                        result = (1, [])
+                    else:
+                        result = (0, [])
+                    break
+                except redis.WatchError:
+                    if watch_error_count > 5:
+                        result = None
+                        break
+                    watch_error_count += 1
+                except Exception as ex:
+                    result = None
+                    print(ex)
+                    break
+        return result
 
     # returns a dictionary of { modelid: data }
     def get_model_data(self, user_id, project_id, list_of_modelid):
@@ -802,63 +946,77 @@ class ModelsTasksConsumer(RedisTasksConsumer):
     """
     model_result_hashmap - {userid}:{projectid}:{models_queue}:{DB_GEN}
         modelid:DATA -> final result
-        modelid:STATUS -> one of ["WAIT", "RUNNING", "ERROR", "DONE"]
+        modelid:STATUS -> one of ["WAIT", "RUNNING", "ERROR", "DONE","TRYCANCEL", "CANCELLED"]
         modelid:JOBID
         modelid:ERROR -> error message if any
         modelid:PICKLE -> path to pickled model
     """
-    def __init__(self, pool, model_func_dict):
+    def __init__(self, redis_config_dict, model_func_dict):
         # print("instantiating models task consumer......")
-        super().__init__(pool, jobqueue_config.models_queue)
+        super().__init__(redis_config_dict, jobqueue_config.models_queue)
         self.model_func_dict = model_func_dict
 
     def pull_job(self, consumer_name):
-        self.get_item(consumer_name)
-        model_result_hashmap = self._item[1]["model_result_hashmap"]
-        modelid = self._item[1]["modelid"]
+        while True:
+            self.get_item(consumer_name)
+            model_result_hashmap = self._item[1]["model_result_hashmap"]
+            cancelled_hashmap = self._item[1]["cancelled_hashmap"]
+            modelid = self._item[1]["modelid"]
 
-        result = None
-        with self.redis.pipeline() as pipe:
-            watch_error_count = 0
-            while True:
-                try:
-                    pipe.watch(model_result_hashmap)
-                    last_jobid = pipe.hget(model_result_hashmap, f"{modelid}:JOBID")
+            result = None
+            with self.redis.pipeline() as pipe:
+                watch_error_count = 0
+                while True:
+                    try:
+                        pipe.watch(model_result_hashmap)
+                        last_jobid = pipe.hget(model_result_hashmap, f"{modelid}:JOBID")
+                        cancelled_status = int(pipe.hget(cancelled_hashmap, self.jobid))
 
-                    # ignore the job, ack it and get the next job
-                    if last_jobid and last_jobid > self.jobid:
-                        pipe.multi()
-                        pipe.xack(self.jobq, self.jobq_CG, self.jobid)
-                        pipe.execute()
-                        print("stale items - pull model job")
-                    else:
-                        pipe.multi()
-                        pipe.hget(
-                            self._item[1]["pipe_result_hashmap"],
-                            self._item[1]["field_name"],
-                        )
-                        pipe.hset(model_result_hashmap, f"{modelid}:STATUS", "RUNNING")
-                        ret = pipe.execute()
-                        res = ret[0]
-                        result = {
-                            "jobid": self.jobid,
-                            "modelid": self._item[1]["modelid"],
-                            "modelname": self._item[1]["modelname"],
-                            "model_type": self._item[1]["model_type"],
-                            "model_result_hashmap": self._item[1]["model_result_hashmap"],
-                            "data": self.from_JSON(res),
-                        }
+                        # ignore the job, ack it and get the next job
+                        # print(self._item[1]["cancelled_hashmap"])
+                        if last_jobid and last_jobid > self.jobid:
+                            pipe.multi()
+                            pipe.xack(self.jobq, self.jobq_CG, self.jobid)
+                            pipe.execute()
+                            print("stale items - pull model job")
+                            self.reset_item()
+                        elif cancelled_status != 0:
+                            pipe.multi()
+                            pipe.hset(model_result_hashmap, f"{modelid}:STATUS", "CANCELLED")
+                            pipe.xack(self.jobq, self.jobq_CG, self.jobid)
+                            pipe.execute()
+                            print(f"cancelled job: {self.jobid}")
+                            self.reset_item()
+                        else:
+                            pipe.multi()
+                            pipe.hget(
+                                self._item[1]["pipe_result_hashmap"],
+                                self._item[1]["field_name"],
+                            )
+                            pipe.hset(model_result_hashmap, f"{modelid}:STATUS", "RUNNING")
+                            ret = pipe.execute()
+                            res = ret[0]
+                            result = {
+                                "jobid": self.jobid,
+                                "modelid": self._item[1]["modelid"],
+                                "modelname": self._item[1]["modelname"],
+                                "model_type": self._item[1]["model_type"],
+                                "model_result_hashmap": self._item[1]["model_result_hashmap"],
+                                "data": self.from_JSON(res),
+                            }
                         break
-                except redis.WatchError:
-                    if watch_error_count > 100:
-                        break
-                    if watch_error_count > 20:
-                        time.sleep(0.1)
-                    watch_error_count += 1
-                    continue
-                # Any other exception type is not expected
-                except Exception as ex:
-                    raise ex
+                    except redis.WatchError:
+                        if watch_error_count > 100:
+                            break
+                        if watch_error_count > 20:
+                            time.sleep(0.1)
+                        watch_error_count += 1
+                        continue
+                    # Any other exception type is not expected
+                    except Exception as ex:
+                        raise ex
+            if result:
+                break
         return result
 
     def submit_result(
@@ -867,9 +1025,10 @@ class ModelsTasksConsumer(RedisTasksConsumer):
         jobid,
         modelid,
         modelstatus,
-        result_dict={},
-        model_to_pickle={},
-        error_msg="",
+        result_dict,
+        model_to_pickle,
+        error_msg,
+        cancelled_hashmap,
     ):
         """
         modelstatus -> one of ["DONE", "ERROR"]
@@ -878,12 +1037,13 @@ class ModelsTasksConsumer(RedisTasksConsumer):
 
         folder_name = projectid
         file_path = f"{folder_name}/{datetime.datetime.now().strftime('%s')}___{modelid}.pkl.zip"
+        modelid = self._item[1]["modelid"]
 
         with self.redis.pipeline() as pipe:
             error_count = 0
             while True:
                 try:
-                    pipe.watch(model_result_hashmap)
+                    pipe.watch(model_result_hashmap, cancelled_hashmap)
                     # after WATCHing, the pipeline is put into immediate execution
                     # mode until we tell it to start buffering commands again.
                     last_jobid = pipe.hget(model_result_hashmap, f"{modelid}:JOBID")
@@ -892,6 +1052,10 @@ class ModelsTasksConsumer(RedisTasksConsumer):
                         # self.redis.xack(self.jobq, self.jobq_CG, self.jobid)
                         print("ignoring job result - superceded")
                         break
+                    cancelled_status = int(pipe.hget(cancelled_hashmap, self.jobid))
+                    if cancelled_status != 0:
+                        modelstatus = "CANCELLED"
+                        result_dict = {}
                     # now we can put the pipeline back into buffered mode with MULTI
                     pipe.multi()
                     pipe.hset(model_result_hashmap, f"{modelid}:JOBID", jobid)
@@ -955,12 +1119,12 @@ class ModelsTasksConsumer(RedisTasksConsumer):
             return False
 
     def run(self, consumer_name):
-        job = None
         while True:
+            job = None
+            cancelled_hashmap = None
             try:
                 print("─────────────────────────   pulling model job   ─────────────────────────")
                 job = self.pull_job(consumer_name)
-                # print(job)
                 print(
                     "pulled model Job... processing",
                     "jobid = ",
@@ -976,11 +1140,26 @@ class ModelsTasksConsumer(RedisTasksConsumer):
                     "model_type": job["model_type"],
                     "data": job["data"],
                 }
-                # (result_dict, model_to_pickle) = test_func(config)
-                (result_dict, model_to_pickle) = self.model_func_dict[job["modelid"]](config)
-                # print("computed model result")
-                modelstatus = "DONE"
-                error_msg = ""
+                cancelled_hashmap = cancelled_hashmap = self._item[1]["cancelled_hashmap"]
+                # (result_dict, model_to_pickle) = self.model_func_dict[job["modelid"]](config)
+                (result, error_msg, cancelled, exception) = execute_task(self.model_func_dict[job["modelid"]],
+                                                                         config, self.redis_config_dict,
+                                                                         cancelled_hashmap, self.jobid)
+                if cancelled:
+                    if exception:
+                        modelstatus = "ERROR"
+                    else:
+                        modelstatus = "CANCELLED"
+                else:
+                    if exception:
+                        modelstatus = "ERROR"
+                    else:
+                        modelstatus = "DONE"
+                if (not exception) and (not cancelled) and result:
+                    (result_dict, model_to_pickle) = result
+                else:
+                    (result_dict, model_to_pickle) = ({}, {})
+
             except KeyboardInterrupt:
                 break
             except Exception as error:
@@ -993,7 +1172,7 @@ class ModelsTasksConsumer(RedisTasksConsumer):
                 if not (isinstance(error, KeyboardInterrupt)):
                     print(error_msg)
             finally:
-                if self._item and job:
+                if self._item and job and cancelled_hashmap:
                     self.submit_result(
                         job["model_result_hashmap"],
                         job["jobid"],
@@ -1002,6 +1181,7 @@ class ModelsTasksConsumer(RedisTasksConsumer):
                         result_dict,
                         model_to_pickle,
                         error_msg,
+                        cancelled_hashmap,
                     )
                     self.redis.xack(self.jobq, self.jobq_CG, job["jobid"])
                     print(
@@ -1011,15 +1191,14 @@ class ModelsTasksConsumer(RedisTasksConsumer):
                         "modelname = ",
                         job["modelname"],
                     )
-                    job = None
-                # time.sleep(10)
+                job = None
 
 
 User = namedtuple("User", ["id", "password"])
 
 
 class Application:
-    def __init__(self, pool):
+    def __init__(self, redis_config_dict):
         """
         pool: redis ConnectionPool
         users_hashmap:s
@@ -1036,9 +1215,8 @@ class Application:
         uploads_set (sorted set), lexicographical queries
             0 user_id:{timestamp}__{filename}
         """
-        assert isinstance(pool, redis.ConnectionPool), "pool should be a Redis ConnectionPool"
-
-        self.redis = redis.Redis(connection_pool=pool)
+        self.redis_config_dict = redis_config_dict
+        self.redis = redis.Redis(connection_pool=redis.ConnectionPool(**redis_config_dict))
         self.users_hashmap = jobqueue_config.USERS_HASHMAP
         self.users_set = jobqueue_config.USERS_SET
         self.users_id = jobqueue_config.USERS_ID

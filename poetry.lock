@@ -108,6 +108,9 @@ category = "dev"
 optional = false
 python-versions = ">=3.6"
 
+[package.dependencies]
+Pygments = {version = ">=2.2.0", optional = true, markers = "extra == \"pygments\""}
+
 [package.extras]
 pygments = ["Pygments (>=2.2.0)"]
 
@@ -963,7 +966,7 @@ python-versions = "*"
 [metadata]
 lock-version = "1.1"
 python-versions = "^3.9"
-content-hash = "ceff04eac109debf612e4b00e5ba601d73076401714f5a7f79390c0eee926e3d"
+content-hash = "5e3819ef205a4c2aac269d8d8f401e59418337552b9cc893e431a4d53fc84b10"
 
 [metadata.files]
 aiofiles = [

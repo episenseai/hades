@@ -48,6 +48,8 @@ async def model_build(request):
                             model_type,
                             optimizeUsing,
                         )
+                        from devtools import debug
+                        debug(data)
                         if data is None:
                             info = f"Something fatal happened while submitting models jobs for {request.args['projectid'][0]}"
                             status = 500
@@ -70,6 +72,8 @@ async def model_build(request):
         info = ex.args[0]
         status = 500
     finally:
+        from devtools import debug
+        debug(data)
         return response.json(
             {
                 "success": True if (status == 200) else False,
@@ -161,6 +165,63 @@ async def get_model_result(request):
                 "version": "v1",
                 "info": info,
                 "data": data["models"][0] if (status == 200) else {},
+            },
+            status=status,
+        )
+
+
+@models_bp.post("/cancel")
+async def cancel_model_job(request):
+    print("Cancellation request")
+    try:
+        if "userid" not in request.args and "projectid" not in request.args:
+            info = "Bad request. missing parameters"
+            status = 400
+        elif "modelid" not in request.json:
+            info = "Bad request. missing 'modelid' in json body"
+            status = 400
+        else:
+            proj = store_backend.verify_projectid(request.ctx.userid, request.args["projectid"][0])
+            if proj is None:
+                info = f"Projectid {request.args['projectid'][0]} not associated with the user"
+                status = 400
+            elif request.json["modelid"] not in model_producer.get_models_list(
+                    request.ctx.userid, request.args["projectid"][0]):
+                info = "Bad reuqest. modelid not associated with the project"
+                status = 400
+            else:
+                data = model_producer.cancel_job(
+                    request.ctx.userid,
+                    request.args["projectid"][0],
+                    request.json["modelid"],
+                )
+                # pprint(data)
+                if data:
+                    status = 200
+                    if data[0] == 0:
+                        info = "Model is not in the job queue."
+                    elif data[0] == 1:
+                        info = "Model build was already cancelled from a previous request."
+                    else:
+                        info = "Model was successfully marked for cancellation."
+                else:
+                    info = "Error trying to cancel the model build"
+                    status = 500
+                from devtools import debug
+                debug(data)
+    except Exception as ex:
+        import traceback
+
+        print(traceback.format_exc())
+        info = ex.args[0]
+        status = 500
+    finally:
+        return response.json(
+            {
+                "success": True if (status == 200) else False,
+                "version": "v1",
+                "info": info,
+                "data": {},
             },
             status=status,
         )
