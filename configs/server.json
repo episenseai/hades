@@ -21,6 +21,8 @@
     "data": "./data",
     "CORS_origins": [
       "http://localhost:3000",
+      "http://localhost:3001",
+      "http://localhost:3002",
       "http://load-balancer-1-580324002.us-east-2.elb.amazonaws.com",
       "http://load-balancer-1-580324002.us-east-2.elb.amazonaws.com:80"
     ],
