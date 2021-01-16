@@ -6,7 +6,7 @@
     "decode_responses": true
   },
   "workers": {
-    "num_workers": 2,
+    "num_workers": 4,
     "worker_names": [
       "modelling:worker1",
       "modelling:worker2",

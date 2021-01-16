@@ -90,13 +90,11 @@ def rocCurveforMultiClassDecisionTree(X, Y, catClasses, clfObject):
         if catClasses.shape[0] > 2:
             fpr[i], tpr[i], _ = roc_curve(Y_test_ovr[:, i], Y_score_ovr[:, i])
             roc_auc[i] = auc(fpr[i], tpr[i])
-            if len(_) > 1000:
+            if len(_) > 200:
                 fpr[i], tpr[i] = sample(zip(fpr[i], tpr[i]), 200)
         else:
             fpr[i], tpr[i], _ = roc_curve(Y_test_ovr[:], Y_score_ovr[:, i], pos_label=catClasses[0])
             roc_auc[i] = auc(fpr[i], tpr[i])
-            if len(_) > 1000:
-                fpr[i], tpr[i] = sample(zip(fpr[i], tpr[i]), 200)
     return fpr, tpr, roc_auc, Y_test_ovr, Y_pred_ovr, Y_score_ovr
 
 
