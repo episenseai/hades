@@ -39,7 +39,7 @@ for model in multi_classifiers.models:
 def get_all_models(modelType):
     if modelType == "regressor":
         return regressors.models
-    elif modelType == "classifiers":
+    elif modelType == "classifier":
         return classifiers.models
     elif modelType == "multi_classifier":
         return multi_classifiers.models

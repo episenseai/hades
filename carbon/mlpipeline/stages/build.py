@@ -1,29 +1,15 @@
-import re
-
-
 def process(config):
     try:
-        model_type_name = config["build:GET"]["data"]["summary"]["modelType"]
-        regression_1 = re.compile("regression")
-        regression_2 = re.compile("Regression")
-        regression_3 = re.compile("regress")
+        model_type = config["build:GET"]["data"]["summary"]["modelType"]
 
-        binary_1 = re.compile("Binary Calssification")
-        binary_2 = re.compile("Binary Calssifier")
-        binary_3 = re.compile("2-calssifier")
-        # binary_4 = re.compile("Binary")
-        # binary_5 = re.compile("binary")
-
-        if (regression_1.search(model_type_name) is not None or
-                regression_2.search(model_type_name) is not None or
-                regression_3.search(model_type_name) is not None):
-            model_type = "regressor"
-        elif (binary_1.search(model_type_name) is not None or binary_2.search(model_type_name) is not None or
-              binary_3.search(model_type_name) is not None or binary_3.search(model_type_name) is not None or
-              binary_3.search(model_type_name) is not None):
-            model_type = "classifier"
+        if model_type == "regressor":
+            model_type_name = "Regression"
+        elif model_type == "classifier":
+            model_type_name = "Binary Classifier"
+        elif model_type == "multi_classifier":
+            model_type_name = "Multi Classifier"
         else:
-            model_type = "multi_classifier"
+            model_type_name = "**Unknown**"
 
         cols = []
 

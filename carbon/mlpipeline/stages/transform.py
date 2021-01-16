@@ -11,14 +11,14 @@ def process(config):
         if element["id"] == target:
             TargetColumn = element["name"]
             if element["type"] == "Number":
-                modelType = modelType + "Regression"
+                modelType = modelType + "regressor"
             elif element["type"] == "Category":
                 if df[TargetColumn].nunique() <= 2:
-                    modelType = modelType + "Binary Calssification"
+                    modelType = modelType + "classifier"
                 else:
-                    modelType = modelType + "Multi-class Calssification"
+                    modelType = modelType + "multi_classifier"
     # print(modelType)
-    if modelType == "Regression":
+    if modelType == "regressor":
         metrics = [
             "explained_variance_score",
             "max_error",
@@ -59,8 +59,8 @@ def process(config):
                 "target": TargetColumn,
                 "modelType": modelType,  # or 'Binary Calssification' or 'Regression'
             },
-            "samplingMethods": ["Random"] if modelType == "Regression" else
-                               ["Random", "Stratified"],  # Random - Monte Carlo Sampling
+            "samplingMethods": ["Random"] if modelType == "regressor" else ["Random", "Stratified"
+                                                                           ],  # Random - Monte Carlo Sampling
             "splitMethods": ["Cross Validation", "Training Validation Holdout"],
             "cv": {
                 "folds": 5,
