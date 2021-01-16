@@ -4,6 +4,7 @@ from sklearn.multiclass import OneVsRestClassifier
 from sklearn.preprocessing import label_binarize
 from sklearn.tree import DecisionTreeClassifier
 from pprint import pprint
+from random import sample
 
 from carbon.mlmodels.utils import (
     deliverformattedResultClf,
@@ -18,7 +19,7 @@ from carbon.mlmodels.utils import (
 
 # from pprint import pprint
 # from datetime import datetime
-from confgin import finalconfig1
+from .confgin import finalconfig1
 
 
 def build(confign, model_config=None):
@@ -89,9 +90,13 @@ def rocCurveforMultiClassDecisionTree(X, Y, catClasses, clfObject):
         if catClasses.shape[0] > 2:
             fpr[i], tpr[i], _ = roc_curve(Y_test_ovr[:, i], Y_score_ovr[:, i])
             roc_auc[i] = auc(fpr[i], tpr[i])
+            if len(_) > 1000:
+                fpr[i], tpr[i] = sample(zip(fpr[i], tpr[i]), 200)
         else:
             fpr[i], tpr[i], _ = roc_curve(Y_test_ovr[:], Y_score_ovr[:, i], pos_label=catClasses[0])
             roc_auc[i] = auc(fpr[i], tpr[i])
+            if len(_) > 1000:
+                fpr[i], tpr[i] = sample(zip(fpr[i], tpr[i]), 200)
     return fpr, tpr, roc_auc, Y_test_ovr, Y_pred_ovr, Y_score_ovr
 
 
@@ -156,4 +161,4 @@ model_config1["criterion"] = ["gini", "entropy"]
 model_config1["max_features"] = range(10, finalconfig1["data"]["data"]["includedFeatures"], 10)
 model_config1["min_samples_split"]: range(2, 32, 10)
 
-build(finalconfig1, model_config=model_config1)
+# build(finalconfig1, model_config=model_config1)

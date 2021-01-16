@@ -392,9 +392,13 @@ def rocCurveforClassPredictProba(X_train, X_test, Y_train, Y_test, catClasses, c
         if catClasses.shape[0] > 2:
             fpr[i], tpr[i], _ = roc_curve(Y_test[:], Y_score[:, i], pos_label=catClasses[i])
             roc_auc[i] = auc(fpr[i], tpr[i])
+            if len(_) > 1000:
+                fpr[i], tpr[i] = sample(zip(fpr[i], tpr[i]), 200)
         else:
             fpr[i], tpr[i], _ = roc_curve(Y_test[:], Y_score[:, i], pos_label=catClasses[0])
             roc_auc[i] = auc(fpr[i], tpr[i])
+            if len(_) > 1000:
+                fpr[i], tpr[i] = sample(zip(fpr[i], tpr[i]), 200)
     return fpr, tpr, roc_auc, Y_pred, Y_score
 
 
@@ -407,6 +411,11 @@ def rocCurveforClassDecisionFunction(X_train, X_test, Y_train, Y_test, catClasse
     tpr = dict()
     roc_auc = dict()
     # print(Y_test.shape, Y_score.shape)
+
+    # if(Y_test.shape[0]>200):
+    #     Y_test_sample = sample(Y_test,200)
+    #     Y_score_sample =
+
     for i in range(catClasses.shape[0]):
         if catClasses.shape[0] > 2:
             fpr[i], tpr[i], _ = roc_curve(
@@ -415,9 +424,13 @@ def rocCurveforClassDecisionFunction(X_train, X_test, Y_train, Y_test, catClasse
                 pos_label=catClasses[1],
             )
             roc_auc[i] = auc(fpr[i], tpr[i])
+            if len(_) > 1000:
+                fpr[i], tpr[i] = sample(zip(fpr[i], tpr[i]), 200)
         else:
             fpr[i], tpr[i], _ = roc_curve(Y_test[:], Y_score[:], pos_label=catClasses[i])
             roc_auc[i] = auc(fpr[i], tpr[i])
+            if len(_) > 1000:
+                fpr[i], tpr[i] = sample(zip(fpr[i], tpr[i]), 200)
     return fpr, tpr, roc_auc, Y_pred, Y_score
 
 
