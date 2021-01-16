@@ -17,13 +17,13 @@ def process(config):
         if (regression_1.search(model_type_name) is not None or
                 regression_2.search(model_type_name) is not None or
                 regression_3.search(model_type_name) is not None):
-            model_type = "regression"
+            model_type = "regressor"
         elif (binary_1.search(model_type_name) is not None or binary_2.search(model_type_name) is not None or
               binary_3.search(model_type_name) is not None or binary_3.search(model_type_name) is not None or
               binary_3.search(model_type_name) is not None):
-            model_type = "2-classifier"
+            model_type = "classifier"
         else:
-            model_type = "n-classifier"
+            model_type = "multi_classifier"
 
         cols = []
 
@@ -57,7 +57,7 @@ def process(config):
             "optimizeUsing": config["build:POST"]["data"]["optimizeUsing"],
             "downsampling": config["build:POST"]["data"]["downsampling"],
             "cv": config["build:POST"]["data"]["cv"],
-            # 2-classfier, n-classifier, regression
+            # regressor, classifier, multi_classifier
             "model_type": model_type,
             "model_type_name": model_type_name,
             "cols": cols,

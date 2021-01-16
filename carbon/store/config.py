@@ -1,5 +1,5 @@
 from pathlib import Path
-from typing import List
+from typing import List, Optional
 
 from pydantic import BaseModel
 
@@ -12,6 +12,7 @@ class MLModel(BaseModel):
     modelid: str  #UUID4
     modelname: str
     filename: str  # FilePath
+    modelType: Optional[str] = None
 
 
 class RegressorModels(BaseModel):

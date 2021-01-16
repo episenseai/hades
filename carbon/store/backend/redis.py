@@ -29,12 +29,20 @@ seq = [
     "finalconfig:GET",
 ]
 
-# to map the model type list in config file
-model_type_keys = {
-    "2-classifier": classifiers.models,
-    "n-classifier": multi_classifiers.models,
-    "regression": regressors.models,
-}
+for model in regressors.models:
+    model.modelType = "regressor"
+for model in classifiers.models:
+    model.modelType = "classifier"
+for model in multi_classifiers.models:
+    model.modelType = "multi_classifier"
+
+def get_all_models(modelType):
+    if modelType == "regressor":
+        return regressors.models
+    elif modelType == "classifiers":
+        return classifiers.models
+    elif modelType == "multi_classifier":
+        return multi_classifiers.models
 
 
 class TaskResult:
@@ -55,8 +63,8 @@ def main_task_wrapper(func, arg, result_queue: Queue):
 
     try:
         result = func(arg)
-        import time
-        from random import randint
+        # import time
+        # from random import randint
 
         # slow down the task for debugging
         # time.sleep(randint(20, 30))
@@ -767,7 +775,7 @@ class ModelsTasksProducer(RedisTasksProducer):
 
     def submit_model_jobs(self, user_id, project_id, modelType, optimizeUsing):
         """
-        modelType: one of ["regression", "2-classifier", "n-classifier"]
+        modelType: one of ["regressor", "classifier", "multi_classifier"]
         each pipeline job is given:
             - modelid
             - modelname
@@ -807,7 +815,7 @@ class ModelsTasksProducer(RedisTasksProducer):
                         # a single transaction
                         pipe.multi()
                         mss = {}
-                        for model in model_type_keys[modelType]:
+                        for model in get_all_models(modelType):
                             self.modeljob_add(client=pipe,
                                               keys=[
                                                   self.jobq, 'modelid', model.modelid, 'modelname',
@@ -818,7 +826,7 @@ class ModelsTasksProducer(RedisTasksProducer):
                                                   cancelled_hashmap, f"{model.modelid}:JOBID"
                                               ])
                             mss[f"{user_id}:{project_id}:{model.modelid}"] = 0
-                        for model in model_type_keys[modelType]:
+                        for model in get_all_models(modelType):
                             pipe.hset(model_result_hashmap, f"{model.modelid}:STATUS", "WAIT")
                         pipe.zadd(self.models_sorted_set, mss)
                         pipe.hset(pipe_result_hashmap, "pipe:STATUS", "1")

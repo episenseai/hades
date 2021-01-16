@@ -49,7 +49,7 @@ config1 = {
     "Included_features": featureSet1,
     "targetColumn": "term",
     "optimization_metric": "accuracy",
-    "modelType": "n-classifier",
+    "modelType": "multi_classifier",
     "holdout_%": 0.2,
     "Stratified": True,
     "nCVFolds": 6,
@@ -61,7 +61,7 @@ config2 = {
     "Included_features": featureSet2,
     "targetColumn": "sub_grade",
     "optimization_metric": "accuracy",
-    "modelType": "n-classifier",
+    "modelType": "multi_classifier",
     "holdout_%": 0.25,
     "Stratified": True,
     "nCVFolds": 6,
@@ -73,7 +73,7 @@ config3 = {
     "Included_features": featureSet3,
     "targetColumn": "Thal",
     "optimization_metric": "accuracy",
-    "modelType": "n-classifier",
+    "modelType": "multi_classifier",
     "holdout_%": 0.25,
     "Stratified": True,
     "nCVFolds": 6,
@@ -85,7 +85,7 @@ def classifierModelFinalResult(config):
         "page":
             "models",
         "modelType":
-            config["modelType"],  # or 'regression' 'n-classfier'
+            config["modelType"],  # or 'regressor' 'multi_classfier'
         "classes":
             list(catClasses),
         "models": [{

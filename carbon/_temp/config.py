@@ -4,7 +4,7 @@ from pprint import pprint
 def test_func(config):
     print("started processing model job data")
     pprint(config)
-    if config["model_type"] == "regression":
+    if config["model_type"] == "regressor":
         result_dict = {
             "metrics": {
                 "val": 0.72,
@@ -60,7 +60,7 @@ def test_func(config):
                 ],
             },
         }
-    if config["model_type"] == "2-classifier":
+    if config["model_type"] == "classifier":
         result_dict = {
             "metrics": {
                 "val": 0.456
@@ -112,7 +112,7 @@ def test_func(config):
                 "area": 0.923,
             },
         }
-    if config["model_type"] == "n-classifier":
+    if config["model_type"] == "multi_classifier":
         result_dict = {
             "metrics": {
                 "val": 0.456

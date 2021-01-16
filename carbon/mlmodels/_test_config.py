@@ -31,7 +31,7 @@ finalConfig = {
             "holdout": 15
         },
         "model_type":
-            "n-classifier",
+            "multi_classifier",
         "model_type_name":
             "Multi-class Calssification",
         "cols": [
@@ -185,7 +185,7 @@ finalConfig1 = {
             "holdout": 20
         },
         "model_type":
-            "2-classifier",
+            "classifier",
         "model_type_name":
             "Binary Calssification",
         "cols": [{
@@ -1101,7 +1101,7 @@ finalConfig2 = {
             "holdout": 20
         },
         "model_type":
-            "2-classifier",
+            "classifier",
         "model_type_name":
             "Binary Calssification",
         "cols": [{
@@ -1990,7 +1990,7 @@ finalConfig2 = {
 finalconfig3 = {
     'modelid': '2dc4beda-3b36-4421-a014-87f9e0bfa778',
     'modelname': 'Multinomial Naive Bayes Classifier',
-    'model_type': '2-classifier',
+    'model_type': 'classifier',
     'data': {
         'stage': 'finalconfig:GET',
         'data': {
@@ -2021,7 +2021,7 @@ finalconfig3 = {
                 'holdout': 20
             },
             'model_type':
-                '2-classifier',
+                'classifier',
             'model_type_name':
                 'Binary Calssification',
             'cols': [{

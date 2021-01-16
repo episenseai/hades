@@ -10,7 +10,7 @@ from .classifiers import logistic_regression
 from .classifiers import mlp as mlp_classifier
 from .classifiers import multinomial_nb, passive_aggressive, ridge, sgd
 from .config import mlmodels_config
-# Regression models
+# Regressor models
 from .regressors import decision_tree as decision_tree_regressor
 from .regressors import k_neighbors
 from .regressors import linear_sv as linear_sv_regressor
@@ -34,7 +34,7 @@ func_dict = {
     "88f1c34d-bfee-49b1-91e6-d3ea66347c6e": passive_aggressive.build,
     "7116745c-9f8d-458d-b7d6-c2aae90790b3": ridge.build,
     "ae811751-603b-4af4-83bf-39a9eb7bf77f": sgd.build,
-    # regression models
+    # regressor models
     "4be01ae8-5e00-497c-903c-214ded1f1724": decision_tree_regressor.build,
     "83e55067-aa8e-4d4b-961e-bef5218096c9": k_neighbors.build,
     "60c1f21c-7bbb-4119-981a-04a42b1e54cf": linear_sv_regressor.build,
