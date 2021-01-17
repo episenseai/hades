@@ -50,11 +50,11 @@ async def model_build(request):
                             modelids = request.json["modelids"]
                         print(f"{modelids=}***********")
 
-                        res, models_dict = model_producer.submit_model_jobs(request.ctx.userid,
-                                                                            request.args["projectid"][0],
-                                                                            optimizeUsing, model_type,
-                                                                            modelids)
+                        res, models_dict = model_producer.submit_model_jobs(
+                            request.ctx.userid, request.args["projectid"][0], optimizeUsing, model_type, modelids
+                        )
                         from devtools import debug
+
                         debug(res, models_dict)
                         # no model job was queued
                         if not res:
@@ -67,19 +67,23 @@ async def model_build(request):
                                 info = "None of the modelids provided were relavant for this project. "
                             elif len(models_dict.models_to_ignore) == len(modelids):
                                 info = "None of the modelids have status in [DONE, ERROR, CANCELLED]"
-                            elif (len(models_dict.models_rejected)
-                                  + len(models_dict.models_to_ignore)) == len(modelids):
-                                info = "Some of the modelids were irrelavant for the project " +\
-                                        "and the rest of them do not have status in [DONE, ERROR, CANCELLED]."
+                            elif (len(models_dict.models_rejected) + len(models_dict.models_to_ignore)) == len(
+                                modelids
+                            ):
+                                info = (
+                                    "Some of the modelids were irrelavant for the project "
+                                    + "and the rest of them do not have status in [DONE, ERROR, CANCELLED]."
+                                )
                             else:
                                 status = 500
                                 info = "Something unknown happended."
                         else:
-                            data = pipe_producer.current_pipe_state(request.ctx.userid,
-                                                                    request.args["projectid"][0])
+                            data = pipe_producer.current_pipe_state(request.ctx.userid, request.args["projectid"][0])
                             if data is None:
-                                info = "Submitted jobs, but couldn't get current state of the pipeline." +\
-                                        "Try refreshing the page"
+                                info = (
+                                    "Submitted jobs, but couldn't get current state of the pipeline."
+                                    + "Try refreshing the page"
+                                )
                                 status = 500
                             else:
                                 data["id"] = request.args["projectid"][0]
@@ -95,6 +99,7 @@ async def model_build(request):
         status = 500
     finally:
         from devtools import debug
+
         debug(models_dict.dict())
         return response.json(
             {
@@ -126,8 +131,7 @@ async def model_results(request):
                     info = f"There are no models for this project"
                     status = 400
                 else:
-                    data = model_producer.get_model_data(request.ctx.userid, request.args["projectid"][0],
-                                                         models_list)
+                    data = model_producer.get_model_data(request.ctx.userid, request.args["projectid"][0], models_list)
                     # pprint(data)
                     info = f"Got models data for the {proj[0]} project"
                     status = 200
@@ -165,7 +169,8 @@ async def get_model_result(request):
                 info = f"Projectid {request.args['projectid'][0]} not associated with the user"
                 status = 400
             elif request.json["modelid"] not in model_producer.get_models_list(
-                    request.ctx.userid, request.args["projectid"][0]):
+                request.ctx.userid, request.args["projectid"][0]
+            ):
                 info = "Bad reuqest. modelid not associated with the project"
                 status = 400
             else:
@@ -211,7 +216,8 @@ async def cancel_model_job(request):
                 info = f"Projectid {request.args['projectid'][0]} not associated with the user"
                 status = 400
             elif request.json["modelid"] not in model_producer.get_models_list(
-                    request.ctx.userid, request.args["projectid"][0]):
+                request.ctx.userid, request.args["projectid"][0]
+            ):
                 info = "Bad reuqest. modelid not associated with the project"
                 status = 400
             else:
@@ -233,6 +239,7 @@ async def cancel_model_job(request):
                     info = "Error trying to cancel the model build"
                     status = 500
                 from devtools import debug
+
                 debug(data)
     except Exception as ex:
         import traceback

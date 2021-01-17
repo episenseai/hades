@@ -16,9 +16,7 @@ app.blueprint(root_bp)
 ### CORS setting
 CORS(
     app,
-    resources={r"/*": {
-        "origins": server_config.app.CORS_origins
-    }},
+    resources={r"/*": {"origins": server_config.app.CORS_origins}},
     methods=server_config.app.CORS_methods,
     automatic_options=True,
     supports_credentials=True,
@@ -58,11 +56,11 @@ async def authorization(request):
             request.ctx.proj = proj
 
     if request.path not in [
-            "/auth/login",
-            "/auth/signup",
-            "/sse/events",
-            "/sse/events/models",
-            "/checks/health",
+        "/auth/login",
+        "/auth/signup",
+        "/sse/events",
+        "/sse/events/models",
+        "/checks/health",
     ]:
         if request.token is None:
             return response.json(

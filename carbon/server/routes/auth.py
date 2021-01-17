@@ -57,9 +57,7 @@ async def login(request):
                 "success": True if (status == 200 and jwt is not None) else False,
                 "version": "v1",
                 "info": info,
-                "data": {
-                    "jwt": jwt
-                } if (status == 200 and jwt is not None) else {},
+                "data": {"jwt": jwt} if (status == 200 and jwt is not None) else {},
             },
             status=status,
         )

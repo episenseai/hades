@@ -36,8 +36,9 @@ def build(confign):
     # print("end", datetime.now())
 
     # Plot of a ROC curve for a specific class
-    fpr, tpr, roc_auc, Y_pred, Y_score = rocCurveforClassDecisionFunction(X_train, X_test, Y_train, Y_test,
-                                                                          catClasses, clf_fit)
+    fpr, tpr, roc_auc, Y_pred, Y_score = rocCurveforClassDecisionFunction(
+        X_train, X_test, Y_train, Y_test, catClasses, clf_fit
+    )
     confusion = confusion_matrix(Y_test, Y_pred)
     metricResult = metricResultMultiClassifier(Y_test, Y_pred, Y_score)
     # plotRoCCurve(catClasses, fpr, tpr, roc_auc)

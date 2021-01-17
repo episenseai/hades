@@ -89,8 +89,7 @@ def uniqueColumnIdUserUpdated(config):
 def csvFileSelector(config):
     df = None
     try:
-        zip_file = ZipFile(mlmodels_config.job.uploads_folder + "/"
-                           + config["consume:POST"]["data"]["filepath"])
+        zip_file = ZipFile(mlmodels_config.job.uploads_folder + "/" + config["consume:POST"]["data"]["filepath"])
         csv_files = ""
         for csv_file in zip_file.infolist():
             if csv_file.filename.endswith(".csv"):
@@ -233,8 +232,7 @@ def binCreation(dfColumn):
             counterLowbound = counter
             counter = round((counter + (maxValue - minValue) / 20), 4)
             # print(counterLowbound, (maxValue - counter))
-            counts.append((dfColumn[dfColumn < counter]).count()
-                          - (dfColumn[dfColumn < counterLowbound]).count())
+            counts.append((dfColumn[dfColumn < counter]).count() - (dfColumn[dfColumn < counterLowbound]).count())
             breaks.append(counter)
     else:
         pass
@@ -337,8 +335,7 @@ def plotRoCCurve(catClasses, fpr, tpr, auRoC):
             tpr[i],
             # color=colors,
             lw=2,
-            label="ROC curve of class{0} (area = {1:0.2f}) ({2})"
-            "".format(classes, auRoC[i], i),
+            label="ROC curve of class{0} (area = {1:0.2f}) ({2})" "".format(classes, auRoC[i], i),
         )
 
     plt.plot([0, 1], [0, 1], "k--")
@@ -356,21 +353,21 @@ def deliverRoCResult(catClasses, fpr, tpr, roc_auc):
     n_classes = catClasses.shape[0]
     roc = []
     for key, classes in zip(fpr, catClasses):
-        roc.append({
-            "name": classes,
-            "x": fpr[key].tolist(),
-            "y": tpr[key].tolist(),
-            "area": roc_auc[key],
-        })
+        roc.append(
+            {
+                "name": classes,
+                "x": fpr[key].tolist(),
+                "y": tpr[key].tolist(),
+                "area": roc_auc[key],
+            }
+        )
     return roc
 
 
 def deliverformattedResultClf(config, catClasses, metricResult, confusion, roc):
     returnResult = {
         "classes": list(catClasses),
-        "metrics": {
-            "val": metricResult[config["data"]["optimizeUsing"]]
-        },
+        "metrics": {"val": metricResult[config["data"]["optimizeUsing"]]},
         # confusion matrix: [[TP, FP], [FN, TN]]
         "cm": confusion.tolist(),
         "roc": roc,
@@ -557,10 +554,12 @@ def metricResultMultiClassifier(Y_test, Y_pred, Y_score):
 
 
 def oneHotEncodeCategoricalVar(X, columnType):
-    categorical_transformer = Pipeline(steps=[
-        ("imputer", SimpleImputer(strategy="constant", fill_value="missing")),
-        ("onehot", OneHotEncoder(handle_unknown="ignore")),
-    ])
+    categorical_transformer = Pipeline(
+        steps=[
+            ("imputer", SimpleImputer(strategy="constant", fill_value="missing")),
+            ("onehot", OneHotEncoder(handle_unknown="ignore")),
+        ]
+    )
     trans_features = []
     for labels in X.columns:
         if columnType[labels] == "Category":
@@ -646,13 +645,9 @@ def deliverformattedResult(config, metricResult, Y_pred, Y_test):
             "msle": metricResult["mean_squared_log_error"],
         },
         # predicted vs true plot
-        "pt": {
-            "p": [round(float(x), 2) for x in Y_pred],
-            "t": list(Y_test)
-        } if Y_test.shape[0] < 400 else {
-            "p": x1,
-            "t": y1
-        },
+        "pt": {"p": [round(float(x), 2) for x in Y_pred], "t": list(Y_test)}
+        if Y_test.shape[0] < 400
+        else {"p": x1, "t": y1},
     }
     return returnResult
 

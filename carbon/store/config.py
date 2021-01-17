@@ -9,7 +9,7 @@ multi_classifiers_path = Path('configs/store/multi_classifier_models.json')
 
 
 class MLModel(BaseModel):
-    modelid: str  #UUID4
+    modelid: str  # UUID4
     modelname: str
     filename: str  # FilePath
     modelType: Optional[str] = None

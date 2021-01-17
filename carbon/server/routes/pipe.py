@@ -16,15 +16,16 @@ async def next_stage(request):
             if proj is None:
                 info = f"Projectid {request.args['projectid'][0]} not associated with the user"
                 status = 400
-            elif ("current_stage" not in request.json or "next_stage" not in request.json or
-                  "data" not in request.json):
+            elif "current_stage" not in request.json or "next_stage" not in request.json or "data" not in request.json:
                 info = "Bad request. missing values from post data"
                 status = 400
-            elif ((request.json["current_stage"] not in seq[:-1]) or
-                  (request.json["next_stage"] not in seq[:-1]) or
-                  (request.json["current_stage"].split(":")[1] != "GET") or
-                  (request.json["next_stage"].split(":")[1] != "POST") or
-                  ((seq.index(request.json["current_stage"]) + 1) != seq.index(request.json["next_stage"]))):
+            elif (
+                (request.json["current_stage"] not in seq[:-1])
+                or (request.json["next_stage"] not in seq[:-1])
+                or (request.json["current_stage"].split(":")[1] != "GET")
+                or (request.json["next_stage"].split(":")[1] != "POST")
+                or ((seq.index(request.json["current_stage"]) + 1) != seq.index(request.json["next_stage"]))
+            ):
                 info = "Bad request. wrong data in post request"
                 status = 400
             else:
@@ -69,8 +70,8 @@ async def stage_data(request):
         if "userid" not in request.args and "projectid" not in request.args:
             info = "Bad request. missing parameters"
             status = 400
-        elif (store_backend.verify_projectid(request.ctx.userid, request.args["projectid"][0]) is None):
-            info = (f"Projectid {request.args['projectid'][0]} not associated with the user")
+        elif store_backend.verify_projectid(request.ctx.userid, request.args["projectid"][0]) is None:
+            info = f"Projectid {request.args['projectid'][0]} not associated with the user"
             status = 400
         elif "current_stage" not in request.json:
             info = f"Bad request. missing current_stage value."

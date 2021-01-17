@@ -52,6 +52,7 @@ class TaskCancelled:
 
 def main_task_wrapper(func, arg, result_queue: Queue):
     import warnings
+
     warnings.simplefilter("ignore")
 
     try:
@@ -71,6 +72,7 @@ def status_task_wrapper(result_queue: Queue, redis_config_dict, cancelled_hashma
     import time
 
     import redis
+
     try:
         pool = redis.Redis(connection_pool=redis.ConnectionPool(**redis_config_dict))
         while True:
@@ -88,19 +90,24 @@ def status_task_wrapper(result_queue: Queue, redis_config_dict, cancelled_hashma
 
 def execute_task(func, arg, redis_config, cancelled_hashmap, jobid):
     result_queue = Queue()
-    main_task = Process(target=main_task_wrapper, args=(
-        func,
-        arg,
-        result_queue,
-    ))
+    main_task = Process(
+        target=main_task_wrapper,
+        args=(
+            func,
+            arg,
+            result_queue,
+        ),
+    )
     main_task.start()
-    status_task = Process(target=status_task_wrapper,
-                          args=(
-                              result_queue,
-                              redis_config,
-                              cancelled_hashmap,
-                              jobid,
-                          ))
+    status_task = Process(
+        target=status_task_wrapper,
+        args=(
+            result_queue,
+            redis_config,
+            cancelled_hashmap,
+            jobid,
+        ),
+    )
     status_task.start()
     result = result_queue.get()
 
@@ -380,13 +387,9 @@ class RedisTasksConsumer(RedisTasks):
     def xreadgroup(self, consumer_name, nextjob=">"):
         self._item = None
         # print("getting job for ", consumer_name, self.jobq, self.jobq_CG)
-        return self.redis.xreadgroup(
-            self.jobq_CG,
-            consumer_name,
-            {self.jobq: nextjob},
-            count=1,
-            block=0,
-        )[0][1]
+        return self.redis.xreadgroup(self.jobq_CG, consumer_name, {self.jobq: nextjob}, count=1, block=0,)[
+            0
+        ][1]
 
     def get_item(self, consumer_name):
         items = []
@@ -484,10 +487,7 @@ class PipeTasksProducer(RedisTasksProducer):
                     pipe.hsetnx(
                         result_hashmap,
                         "consume:GET",
-                        self.to_JSON({
-                            "stage": "consume:GET",
-                            "data": {}
-                        }),
+                        self.to_JSON({"stage": "consume:GET", "data": {}}),
                     )
                     pipe.hsetnx(result_hashmap, "current.stage", "consume:GET")
                     pipe.hsetnx(result_hashmap, "pipe:STATUS", 0)
@@ -650,11 +650,13 @@ class PipeTasksConsumer(RedisTasksConsumer):
 
             # ignore the job, ack it and get the next job
             # check pipe:STATUS
-            if ((int(pipe_status) != 0)  # type: ignore
-                    # stage pulled from the job_queue is not the active stage of the pipeline
-                    or current_stage != self.stage
-                    # current_jobid supercedes the job pulled from the job queue
-                    or current_jobid > self.jobid):
+            if (
+                (int(pipe_status) != 0)  # type: ignore
+                # stage pulled from the job_queue is not the active stage of the pipeline
+                or current_stage != self.stage
+                # current_jobid supercedes the job pulled from the job queue
+                or current_jobid > self.jobid
+            ):
                 self.xack()
                 print("stale items - pull job")
                 continue
@@ -665,7 +667,7 @@ class PipeTasksConsumer(RedisTasksConsumer):
 
     def submit_result(self, result_dict):
         """
-            result_dict: dictionary of results to be converted into JSON before storing
+        result_dict: dictionary of results to be converted into JSON before storing
         """
         #  use redis pipeline to watch for the hashmap
         #       check if the job is stale
@@ -688,11 +690,13 @@ class PipeTasksConsumer(RedisTasksConsumer):
 
                     # check if the job is superceded by some other job
                     # check pipe:STATUS
-                    if ((int(pipe_status) != 0)
-                            # stage pulled from the job_queue is not the active stage of the pipeline
-                            or current_stage != self.stage
-                            # current_jobid supercedes the job pulled from the job queue
-                            or current_jobid != self.jobid):
+                    if (
+                        (int(pipe_status) != 0)
+                        # stage pulled from the job_queue is not the active stage of the pipeline
+                        or current_stage != self.stage
+                        # current_jobid supercedes the job pulled from the job queue
+                        or current_jobid != self.jobid
+                    ):
                         break
 
                     # now we can put the pipeline back into buffered mode with MULTI
@@ -817,23 +821,21 @@ class ModelsTasksProducer(RedisTasksProducer):
 
         result = None
 
-        models_accepted = []
+        models_accepted: List[MLModel] = []
         # `modelids` for which the `model.modelType` does not match `modelType`
-        modelids_rejected = []
-        models_to_build = []
+        modelids_rejected: List[str] = []
+        models_to_build: List[MLModel] = []
         # if the models is rerun and the status is not in ["DONE", "ERROR", "CANCELLED"] then
         # the models are not added to the job_queue
-        models_to_ignore = []
+        models_to_ignore: List[MLModel] = []
 
         models_accepted, modelids_rejected = self.get_model_by_ids(modelids, modelType)
 
         if models_accepted:
             # config data used for model building
-            pipe_result_hashmap = (
-                f"{user_id}:{project_id}:{jobqueue_config.pipe_queue}:{jobqueue_config.DB_GEN}")
+            pipe_result_hashmap = f"{user_id}:{project_id}:{jobqueue_config.pipe_queue}:{jobqueue_config.DB_GEN}"
             # hashmap to store the pipe results
-            model_result_hashmap = (
-                f"{user_id}:{project_id}:{jobqueue_config.models_queue}:{jobqueue_config.DB_GEN}")
+            model_result_hashmap = f"{user_id}:{project_id}:{jobqueue_config.models_queue}:{jobqueue_config.DB_GEN}"
             # hashmap to store cancelled jobids
             cancelled_hashmap = f"{user_id}:{project_id}:CANCELLED:{jobqueue_config.DB_GEN}"
 
@@ -884,12 +886,26 @@ class ModelsTasksProducer(RedisTasksProducer):
                                 self.modeljob_add(
                                     client=pipe,
                                     keys=[
-                                        self.jobq, 'modelid', model.modelid, 'modelname', model.modelname,
-                                        'filename', model.filename, 'model_type', modelType,
-                                        'pipe_result_hashmap', pipe_result_hashmap, "field_name",
-                                        "finalconfig:GET", "model_result_hashmap", model_result_hashmap,
-                                        "cancelled_hashmap", cancelled_hashmap, f"{model.modelid}:JOBID"
-                                    ])
+                                        self.jobq,
+                                        'modelid',
+                                        model.modelid,
+                                        'modelname',
+                                        model.modelname,
+                                        'filename',
+                                        model.filename,
+                                        'model_type',
+                                        modelType,
+                                        'pipe_result_hashmap',
+                                        pipe_result_hashmap,
+                                        "field_name",
+                                        "finalconfig:GET",
+                                        "model_result_hashmap",
+                                        model_result_hashmap,
+                                        "cancelled_hashmap",
+                                        cancelled_hashmap,
+                                        f"{model.modelid}:JOBID",
+                                    ],
+                                )
                                 if not job_rerun:
                                     mss[f"{user_id}:{project_id}:{model.modelid}"] = 0
                             for model in models_to_build:
@@ -913,16 +929,19 @@ class ModelsTasksProducer(RedisTasksProducer):
                         print(ex)
                         raise
 
-        return (result,
-                ModelJobs(models_accepted=[model.modelid for model in models_accepted],
-                          models_rejected=modelids_rejected,
-                          models_to_build=[model.modelid for model in models_to_build],
-                          models_to_ignore=[model.modelid for model in models_to_ignore]))
+        return (
+            result,
+            ModelJobs(
+                models_accepted=[model.modelid for model in models_accepted],
+                models_rejected=modelids_rejected,
+                models_to_build=[model.modelid for model in models_to_build],
+                models_to_ignore=[model.modelid for model in models_to_ignore],
+            ),
+        )
 
     # returns a dictionary of { modelid: status }
     def get_model_status(self, user_id, project_id):
-        model_result_hashmap = (
-            f"{user_id}:{project_id}:{jobqueue_config.models_queue}:{jobqueue_config.DB_GEN}")
+        model_result_hashmap = f"{user_id}:{project_id}:{jobqueue_config.models_queue}:{jobqueue_config.DB_GEN}"
         list_of_modelid = self.get_models_list(user_id, project_id)
         return dict(
             zip(
@@ -931,11 +950,11 @@ class ModelsTasksProducer(RedisTasksProducer):
                     model_result_hashmap,
                     [f"{modelid}:STATUS" for modelid in list_of_modelid],
                 ),
-            ))
+            )
+        )
 
     def cancel_job(self, user_id, project_id, modelid):
-        model_result_hashmap = (
-            f"{user_id}:{project_id}:{jobqueue_config.models_queue}:{jobqueue_config.DB_GEN}")
+        model_result_hashmap = f"{user_id}:{project_id}:{jobqueue_config.models_queue}:{jobqueue_config.DB_GEN}"
         cancelled_hashmap = f"{user_id}:{project_id}:CANCELLED:{jobqueue_config.DB_GEN}"
         result = None
         with self.redis.pipeline() as pipe:
@@ -943,8 +962,9 @@ class ModelsTasksProducer(RedisTasksProducer):
             while True:
                 try:
                     pipe.watch(model_result_hashmap, cancelled_hashmap)
-                    current_jobid, current_status = pipe.hmget(model_result_hashmap, f"{modelid}:JOBID",
-                                                               f"{modelid}:STATUS")
+                    current_jobid, current_status = pipe.hmget(
+                        model_result_hashmap, f"{modelid}:JOBID", f"{modelid}:STATUS"
+                    )
                     print(f"current_jobid for cancellation = {current_jobid} {current_status}")
                     if current_status not in ["ERROR", "DONE", "CANCELLED"]:
                         pipe.multi()
@@ -970,13 +990,15 @@ class ModelsTasksProducer(RedisTasksProducer):
 
     # returns a dictionary of { modelid: data }
     def get_model_data(self, user_id, project_id, list_of_modelid):
-        model_result_hashmap = (
-            f"{user_id}:{project_id}:{jobqueue_config.models_queue}:{jobqueue_config.DB_GEN}")
+        model_result_hashmap = f"{user_id}:{project_id}:{jobqueue_config.models_queue}:{jobqueue_config.DB_GEN}"
         res = self.redis.hmget(
             model_result_hashmap,
-            ([f"{modelid}:DATA" for modelid in list_of_modelid]
-             + [f"{modelid}:STATUS" for modelid in list_of_modelid]
-             + [f"{modelid}:ERROR" for modelid in list_of_modelid] + ["optimizeUsing", "model_type"]),
+            (
+                [f"{modelid}:DATA" for modelid in list_of_modelid]
+                + [f"{modelid}:STATUS" for modelid in list_of_modelid]
+                + [f"{modelid}:ERROR" for modelid in list_of_modelid]
+                + ["optimizeUsing", "model_type"]
+            ),
         )
         model_type = res[-1]
         optimizeUsing = res[-2]
@@ -1029,6 +1051,7 @@ class ModelsTasksConsumer(RedisTasksConsumer):
         modelid:ERROR -> error message if any
         modelid:PICKLE -> path to pickled model
     """
+
     def __init__(self, redis_config_dict, model_func_dict):
         # print("instantiating models task consumer......")
         super().__init__(redis_config_dict, jobqueue_config.models_queue)
@@ -1167,8 +1190,7 @@ class ModelsTasksConsumer(RedisTasksConsumer):
                     break
                 except redis.WatchError as ex:
                     if error_count > 100:
-                        raise Exception(
-                            "Something fatal happened while submitting result of model job") from ex
+                        raise Exception("Something fatal happened while submitting result of model job") from ex
                     if error_count > 20:
                         time.sleep(0.1)
                     error_count += 1
@@ -1220,9 +1242,9 @@ class ModelsTasksConsumer(RedisTasksConsumer):
                 }
                 cancelled_hashmap = cancelled_hashmap = self._item[1]["cancelled_hashmap"]
                 # (result_dict, model_to_pickle) = self.model_func_dict[job["modelid"]](config)
-                (result, error_msg, cancelled, exception) = execute_task(self.model_func_dict[job["modelid"]],
-                                                                         config, self.redis_config_dict,
-                                                                         cancelled_hashmap, self.jobid)
+                (result, error_msg, cancelled, exception) = execute_task(
+                    self.model_func_dict[job["modelid"]], config, self.redis_config_dict, cancelled_hashmap, self.jobid
+                )
                 if cancelled:
                     if exception:
                         modelstatus = "ERROR"
@@ -1432,12 +1454,15 @@ class Application:
         projects = [(p + [projects_desc[i]]) for i, p in enumerate(projects)]
         # print(projects)
         return sorted(
-            ({
-                "projectid": p[1],
-                "projectname": p[3],
-                "timestamp": datetime.datetime.utcfromtimestamp(int(p[2])).isoformat(),
-                "projectdesc": p[4],
-            } for p in filter(lambda p: p[0] == user_id, projects)),
+            (
+                {
+                    "projectid": p[1],
+                    "projectname": p[3],
+                    "timestamp": datetime.datetime.utcfromtimestamp(int(p[2])).isoformat(),
+                    "projectdesc": p[4],
+                }
+                for p in filter(lambda p: p[0] == user_id, projects)
+            ),
             key=lambda x: x["timestamp"],
             reverse=True,
         )
@@ -1446,8 +1471,7 @@ class Application:
         return self.redis.hset(self.current_project, user_id, project_id)
 
     def get_current_projectid(self, user_id):
-        """returns None if no project set, otherwise returns the projectid
-        """
+        """returns None if no project set, otherwise returns the projectid"""
         return self.redis.hget(self.current_project, user_id)
 
     def verify_projectid(self, userid, projectid):
@@ -1481,14 +1505,14 @@ class Application:
         if not uploads:
             return uploads
         return sorted(
-            ({
-                "timestamp":
-                    datetime.datetime.utcfromtimestamp(int(p[1].split("___", maxsplit=1)[0])).isoformat(),
-                "filename":
-                    p[1].split("___", maxsplit=1)[1],
-                "filepath":
-                    f"{user_id}/{p[1]}",
-            } for p in filter(lambda p: p[0] == user_id, (up.split(sep=":") for up in uploads))),
+            (
+                {
+                    "timestamp": datetime.datetime.utcfromtimestamp(int(p[1].split("___", maxsplit=1)[0])).isoformat(),
+                    "filename": p[1].split("___", maxsplit=1)[1],
+                    "filepath": f"{user_id}/{p[1]}",
+                }
+                for p in filter(lambda p: p[0] == user_id, (up.split(sep=":") for up in uploads))
+            ),
             key=lambda p: p["timestamp"],
             reverse=True,
         )

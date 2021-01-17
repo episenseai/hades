@@ -13,14 +13,16 @@ func_dict = {
 }
 
 # list of workers
-allowed_pipe_workers = mlpipeline_config.workers.worker_names[:(
-    min(mlpipeline_config.workers.num_workers, len(mlpipeline_config.workers.worker_names)))]
+allowed_pipe_workers = mlpipeline_config.workers.worker_names[
+    : (min(mlpipeline_config.workers.num_workers, len(mlpipeline_config.workers.worker_names)))
+]
 ps = []
 
 
 # spawn this worker func onto a process
 def pipe_consumer_func(worker):
     import warnings
+
     warnings.simplefilter("ignore")
 
     consumer = PipeTasksConsumer(mlpipeline_config.redis.dict(), func_dict)

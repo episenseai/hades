@@ -13,13 +13,15 @@ def process(config):
 
     columnlist1 = []
     for _, keys in zip(range(df.shape[1]), df.columns):
-        columnlist1.append({
-            "id": uniqueColumnId[keys],
-            "name": keys,
-            "type": typeOfColumn1(df[keys]),
-            "sample": list(df[keys].sample(n=10).dropna()),
-            "imputable": False,
-        })
+        columnlist1.append(
+            {
+                "id": uniqueColumnId[keys],
+                "name": keys,
+                "type": typeOfColumn1(df[keys]),
+                "sample": list(df[keys].sample(n=10).dropna()),
+                "imputable": False,
+            }
+        )
 
     return {
         "stage": "prepare:GET",

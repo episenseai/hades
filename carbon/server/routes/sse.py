@@ -130,7 +130,7 @@ async def sse_token(request):
 
 def check_sse_token(request):
     try:
-        if ("userid" not in request.args or "projectid" not in request.args or "token" not in request.args):
+        if "userid" not in request.args or "projectid" not in request.args or "token" not in request.args:
             # print("bad params")
             return False
         else:

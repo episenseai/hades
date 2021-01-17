@@ -56,10 +56,7 @@ def gridSearchLinearSVRegressor(X, Y, config):
     make_pipeline = Pipeline(steps)
     gsreg = GridSearchCV(
         make_pipeline,
-        param_grid={
-            "feature_map_Nystroem__gamma": [0.2, 0.5],
-            "reg__C": [0.1, 1, 10]
-        },
+        param_grid={"feature_map_Nystroem__gamma": [0.2, 0.5], "reg__C": [0.1, 1, 10]},
         cv=config["data"]["cv"]["folds"],
     )
     gsreg_fit = gsreg.fit(X, Y)

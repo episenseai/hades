@@ -6,13 +6,7 @@ def test_func(config):
     pprint(config)
     if config["model_type"] == "regressor":
         result_dict = {
-            "metrics": {
-                "val": 0.72,
-                "r2": 20,
-                "rmse": 30,
-                "mae": 213,
-                "msle": 389
-            },
+            "metrics": {"val": 0.72, "r2": 20, "rmse": 30, "mae": 213, "msle": 389},
             "pt": {
                 "p": [
                     223,
@@ -62,9 +56,7 @@ def test_func(config):
         }
     if config["model_type"] == "classifier":
         result_dict = {
-            "metrics": {
-                "val": 0.456
-            },
+            "metrics": {"val": 0.456},
             "cm": [[724, 1], [7, 136]],
             "roc": {
                 "x": [
@@ -114,9 +106,7 @@ def test_func(config):
         }
     if config["model_type"] == "multi_classifier":
         result_dict = {
-            "metrics": {
-                "val": 0.456
-            },
+            "metrics": {"val": 0.456},
             "classes": [
                 "account_balance",
                 "contact",

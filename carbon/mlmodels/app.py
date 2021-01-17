@@ -2,20 +2,32 @@ from multiprocessing import Process
 
 from ..store.backend.redis import ModelsTasksConsumer
 # Classifier models
-from .classifiers import adaboost, bagging, bernoulli_nb
-from .classifiers import decision_tree as decision_tree_classifier
-from .classifiers import gradient_boost
-from .classifiers import linear_sv as linear_sv_classifier
-from .classifiers import logistic_regression
-from .classifiers import mlp as mlp_classifier
-from .classifiers import multinomial_nb, passive_aggressive, ridge, sgd
+from .classifiers import (
+    adaboost,
+    bagging,
+    bernoulli_nb,
+    decision_tree as decision_tree_classifier,
+    gradient_boost,
+    linear_sv as linear_sv_classifier,
+    logistic_regression,
+    mlp as mlp_classifier,
+    multinomial_nb,
+    passive_aggressive,
+    ridge,
+    sgd,
+)
 from .config import mlmodels_config
 # Regressor models
-from .regressors import decision_tree as decision_tree_regressor
-from .regressors import k_neighbors
-from .regressors import linear_sv as linear_sv_regressor
-from .regressors import mlp as mlp_regressor
-from .regressors import nu_sv, radius_neighbors, sgd_nystroem, theilsen
+from .regressors import (
+    decision_tree as decision_tree_regressor,
+    k_neighbors,
+    linear_sv as linear_sv_regressor,
+    mlp as mlp_regressor,
+    nu_sv,
+    radius_neighbors,
+    sgd_nystroem,
+    theilsen,
+)
 
 # mod_consumer = ModelsTasksConsumer(redis_pool)
 
@@ -46,8 +58,9 @@ func_dict = {
 }
 
 # list of workers
-allowed_model_workers = mlmodels_config.workers.worker_names[:(
-    min(mlmodels_config.workers.num_workers, len(mlmodels_config.workers.worker_names)))]
+allowed_model_workers = mlmodels_config.workers.worker_names[
+    : (min(mlmodels_config.workers.num_workers, len(mlmodels_config.workers.worker_names)))
+]
 
 ps = []
 
@@ -55,6 +68,7 @@ ps = []
 # spawn this worker func onto a process
 def models_consumer_func(worker):
     import warnings
+
     warnings.simplefilter("ignore")
 
     consumer = ModelsTasksConsumer(mlmodels_config.redis.dict(), func_dict)

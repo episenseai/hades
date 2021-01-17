@@ -9,8 +9,7 @@ projects_bp = Blueprint("projects_service", url_prefix="/tab/v1/projects")
 @projects_bp.post("/")
 async def create_project(request):
     try:
-        if ("projectname" not in request.json or "projectdesc" not in request.json or
-                "userid" not in request.args):
+        if "projectname" not in request.json or "projectdesc" not in request.json or "userid" not in request.args:
             info = "Bad request. missing parameters"
             status = 400
         elif ":" in request.json["projectname"]:

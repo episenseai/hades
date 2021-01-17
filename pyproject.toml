@@ -25,7 +25,6 @@ Sanic-Cors = "^0.10.0"
 
 [tool.poetry.dev-dependencies]
 pytest = "^5.2"
-yapf = "^0.30.0"
 ipython = "^7.19.0"
 pylint = "^2.6.0"
 pytest-mock = "^3.5.0"
@@ -38,6 +37,9 @@ flake8-comprehensions = "^3.3.1"
 mypy = "^0.790"
 jedi = "<0.18"
 devtools = {extras = ["pygments"], version = "^0.6.1"}
+flake8-quotes = "^3.2.0"
+black = "^20.8b1"
+autopep8 = "^1.5.4"
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]
@@ -45,7 +47,14 @@ build-backend = "poetry.core.masonry.api"
 
 [tool.pytest.ini_options]
 minversion = "6.0"
+filterwarnings = [
+    "error",
+]
 testpaths = [
     "tests",
     "integration",
 ]
+
+[tool.black]
+line-length = 120
+skip-string-normalization = 1

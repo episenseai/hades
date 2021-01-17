@@ -44,8 +44,9 @@ def build(confign):
     # print(clf.cv_results_)
 
     # Plot of a ROC curve for a specific class
-    fpr, tpr, roc_auc, Y_pred, Y_score = rocCurveforClassPredictProba(X_train, X_test, Y_train, Y_test,
-                                                                      catClasses, clf_fit)
+    fpr, tpr, roc_auc, Y_pred, Y_score = rocCurveforClassPredictProba(
+        X_train, X_test, Y_train, Y_test, catClasses, clf_fit
+    )
     # print((Y_test, Y_pred))
     confusion = confusion_matrix(Y_test, Y_pred)
 

@@ -59,13 +59,11 @@ def process(config):
                 "target": TargetColumn,
                 "modelType": modelType,  # or 'Binary Calssification' or 'Regression'
             },
-            "samplingMethods": ["Random"] if modelType == "regressor" else ["Random", "Stratified"
-                                                                           ],  # Random - Monte Carlo Sampling
+            "samplingMethods": ["Random"]
+            if modelType == "regressor"
+            else ["Random", "Stratified"],  # Random - Monte Carlo Sampling
             "splitMethods": ["Cross Validation", "Training Validation Holdout"],
-            "cv": {
-                "folds": 5,
-                "holdout": 20
-            },  # between 2-20  ## between 5%-50%
+            "cv": {"folds": 5, "holdout": 20},  # between 2-20  ## between 5%-50%
             ## Data Split
             "sampleUsing": "Random",
             "splitUsing": "Cross Validation",

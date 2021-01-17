@@ -1,10 +1,11 @@
+from pprint import pprint
+from random import sample
+
 from sklearn.metrics import auc, confusion_matrix, roc_curve
 from sklearn.model_selection import GridSearchCV, train_test_split
 from sklearn.multiclass import OneVsRestClassifier
 from sklearn.preprocessing import label_binarize
 from sklearn.tree import DecisionTreeClassifier
-from pprint import pprint
-from random import sample
 
 from carbon.mlmodels.utils import (
     deliverformattedResultClf,
@@ -108,11 +109,15 @@ def gridSearchDecisionTreeClf(X, Y, config, model_config=None):
                 # "max_depth": range(2, len(finalFeatureListGenerator(config)), 2),
             },
             cv=config["data"]["cv"]["folds"],
-            return_train_score=True)
+            return_train_score=True,
+        )
         gsClf_fit = gsClf.fit(X, Y)
         gsclf_results = [
-            gsClf_fit.cv_results_, gsClf_fit.best_estimator_, gsClf_fit.best_score_, gsClf_fit.best_params_,
-            gsClf_fit.best_index_
+            gsClf_fit.cv_results_,
+            gsClf_fit.best_estimator_,
+            gsClf_fit.best_score_,
+            gsClf_fit.best_params_,
+            gsClf_fit.best_index_,
         ]
         pprint(gsclf_results)
         gsClf_fit_estimator = gsClf_fit.best_estimator_
@@ -120,14 +125,19 @@ def gridSearchDecisionTreeClf(X, Y, config, model_config=None):
         return gsClf, gsClf_fit_estimator
     else:
         # print(model_config)
-        gsClf = GridSearchCV(DecisionTreeClassifier(random_state=100),
-                             param_grid=model_config,
-                             cv=config["data"]["cv"]["folds"],
-                             return_train_score=True)
+        gsClf = GridSearchCV(
+            DecisionTreeClassifier(random_state=100),
+            param_grid=model_config,
+            cv=config["data"]["cv"]["folds"],
+            return_train_score=True,
+        )
         gsClf_fit = gsClf.fit(X, Y)
         gsclf_results = [
-            gsClf_fit.cv_results_, gsClf_fit.best_estimator_, gsClf_fit.best_score_, gsClf_fit.best_params_,
-            gsClf_fit.best_index_
+            gsClf_fit.cv_results_,
+            gsClf_fit.best_estimator_,
+            gsClf_fit.best_score_,
+            gsClf_fit.best_params_,
+            gsClf_fit.best_index_,
         ]
         pprint(gsclf_results)
         gsClf_fit_estimator = gsClf_fit.best_estimator_
@@ -156,7 +166,7 @@ default_hyperparameters = {
 }
 model_config1 = default_hyperparameters
 model_config1["criterion"] = ["gini", "entropy"]
-model_config1["max_features"] = range(10, finalconfig1["data"]["data"]["includedFeatures"], 10)
-model_config1["min_samples_split"]: range(2, 32, 10)
+model_config1["max_features"] = range(10, finalconfig1["data"]["data"]["includedFeatures"], 10)  # type: ignore
+model_config1["min_samples_split"] = range(2, 32, 10)
 
 # build(finalconfig1, model_config=model_config1)

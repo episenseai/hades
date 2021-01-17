@@ -18,7 +18,8 @@ def process(config):
                 filter(
                     lambda col: col["id"] == feature["id"],
                     config["prepare:POST"]["data"]["cols"],
-                ))
+                )
+            )
             res = {
                 "id": feature["id"],
                 "include": feature["include"],

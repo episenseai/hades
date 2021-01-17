@@ -38,8 +38,9 @@ def build(confign):
     # print("end", datetime.now())
 
     # Plot of a ROC curve for a specific class
-    fpr, tpr, roc_auc, Y_pred, Y_score = rocCurveforClassDecisionFunction(X_train, X_test, Y_train, Y_test,
-                                                                          catClasses, clf_fit)
+    fpr, tpr, roc_auc, Y_pred, Y_score = rocCurveforClassDecisionFunction(
+        X_train, X_test, Y_train, Y_test, catClasses, clf_fit
+    )
     # print((Y_test, Y_pred))
     confusion = confusion_matrix(Y_test, Y_pred)
 
@@ -55,11 +56,10 @@ def build(confign):
 
 def gridSearchAdaBoostClf(X, Y, config):
     gsClf = GridSearchCV(
-        AdaBoostClassifier(random_state=0,),
-        param_grid={
-            "n_estimators": [50, 100],
-            "learning_rate": [0.1, 1, 2]
-        },
+        AdaBoostClassifier(
+            random_state=0,
+        ),
+        param_grid={"n_estimators": [50, 100], "learning_rate": [0.1, 1, 2]},
         cv=config["data"]["cv"]["folds"],
     )
     gsClf_fit = gsClf.fit(X, Y)

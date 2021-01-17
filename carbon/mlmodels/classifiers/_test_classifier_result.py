@@ -14,31 +14,22 @@ from joblib import dump, load
 from process.build import featureListGenerator
 from process.prepare import typeOfColumn1
 from sklearn import svm
-from sklearn.metrics import (
-    SCORERS,
-    accuracy_score,
-    auc,
-    classification_report,
-    confusion_matrix,
-    log_loss,
-    roc_curve,
-)
+from sklearn.metrics import SCORERS, accuracy_score, auc, classification_report, confusion_matrix, log_loss, roc_curve
 from sklearn.model_selection import GridSearchCV, KFold, cross_val_score, cross_validate, train_test_split
 from sklearn.multiclass import OneVsRestClassifier
 from sklearn.preprocessing import LabelEncoder, OneHotEncoder, label_binarize
 from sklearn.tree import DecisionTreeClassifier, plot_tree
 
 featureSet1 = list(
-    featureListGenerator(
-        pd.read_csv("/Users/rajeevranjan/Downloads/pipenv-episense/data/lending_club_loans.csv")))
+    featureListGenerator(pd.read_csv("/Users/rajeevranjan/Downloads/pipenv-episense/data/lending_club_loans.csv"))
+)
 featureSet1.remove("member_id")
 
-featureSet3 = list(
-    featureListGenerator(pd.read_csv("/Users/rajeevranjan/Downloads/pipenv-episense/data/Heart.csv")))
+featureSet3 = list(featureListGenerator(pd.read_csv("/Users/rajeevranjan/Downloads/pipenv-episense/data/Heart.csv")))
 
 featureSet2 = list(
-    featureListGenerator(
-        pd.read_csv("/Users/rajeevranjan/Downloads/pipenv-episense/data/lending_club_loans.csv")))
+    featureListGenerator(pd.read_csv("/Users/rajeevranjan/Downloads/pipenv-episense/data/lending_club_loans.csv"))
+)
 featureSet2.remove("member_id")
 featureSet2.remove("grade")
 
@@ -82,20 +73,17 @@ config3 = {
 
 def classifierModelFinalResult(config):
     returnResult = {
-        "page":
-            "models",
-        "modelType":
-            config["modelType"],  # or 'regressor' 'multi_classfier'
-        "classes":
-            list(catClasses),
-        "models": [{
-            "id": "112233",
-            "metrics": {
-                config["optimization_metric"]: metricResult[config["optimization_metric"]]
-            },
-            "status": 0,
-            # confusion matrix: [[TP, FP], [FN, TN]]
-            "cm": confusion.tolist(),
-            "roc": roc,
-        }],
+        "page": "models",
+        "modelType": config["modelType"],  # or 'regressor' 'multi_classfier'
+        "classes": list(catClasses),
+        "models": [
+            {
+                "id": "112233",
+                "metrics": {config["optimization_metric"]: metricResult[config["optimization_metric"]]},
+                "status": 0,
+                # confusion matrix: [[TP, FP], [FN, TN]]
+                "cm": confusion.tolist(),
+                "roc": roc,
+            }
+        ],
     }
