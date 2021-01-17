@@ -11,10 +11,10 @@ import uuid
 from collections import namedtuple
 from multiprocessing import Process, Queue
 from typing import Any, List, Optional, Tuple
-from pydantic import BaseModel
 
 import jwt
 import redis
+from pydantic import BaseModel
 
 from ..config import MLModel, classifiers, jobqueue_config, multi_classifiers, regressors
 
@@ -789,7 +789,6 @@ class ModelsTasksProducer(RedisTasksProducer):
             else:
                 modelids_to_reject.append(modelid)
         return (models_to_build, modelids_to_reject)
-
 
     def submit_model_jobs(self, user_id, project_id, optimizeUsing, modelType, modelids: List[str] = []):
         """

@@ -1,4 +1,5 @@
 from typing import Optional
+
 from pydantic.main import BaseModel
 from sanic import Blueprint, response
 
