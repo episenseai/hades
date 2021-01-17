@@ -10,12 +10,13 @@ import traceback
 import uuid
 from collections import namedtuple
 from multiprocessing import Process, Queue
-from typing import Any, Optional, Tuple
+from typing import Any, List, Optional, Tuple
+from pydantic import BaseModel
 
 import jwt
 import redis
 
-from ..config import classifiers, jobqueue_config, multi_classifiers, regressors
+from ..config import MLModel, classifiers, jobqueue_config, multi_classifiers, regressors
 
 seq = [
     "consume:GET",
@@ -35,14 +36,6 @@ for model in classifiers.models:
     model.modelType = "classifier"
 for model in multi_classifiers.models:
     model.modelType = "multi_classifier"
-
-def get_all_models(modelType):
-    if modelType == "regressor":
-        return regressors.models
-    elif modelType == "classifier":
-        return classifiers.models
-    elif modelType == "multi_classifier":
-        return multi_classifiers.models
 
 
 class TaskResult:
@@ -288,7 +281,7 @@ class ConsumerError(RedisTasksError):
 #       pipe:STATUS: 1 or 0
 #               -1  -> error in the pipeline
 #                0  -> everything is ok (set initially to start the pipeline)
-#                1  -> complete (finalconfig:GET job done; data added to MongoDB)
+#                1  -> complete (finalconfig:GET job done; data added to Redis)
 #       error:TYPE ->
 #       error:STACK ->
 #
@@ -773,7 +766,32 @@ class ModelsTasksProducer(RedisTasksProducer):
         """
         self.modeljob_add = self.redis.register_script(lua_modeljob_submit.strip())
 
-    def submit_model_jobs(self, user_id, project_id, modelType, optimizeUsing):
+    def get_all_models(self, modelType):
+        if modelType == "regressor":
+            return regressors.models
+        elif modelType == "classifier":
+            return classifiers.models
+        elif modelType == "multi_classifier":
+            return multi_classifiers.models
+
+    def get_all_model_ids_for_type(self, modelType):
+        models = self.get_all_models(modelType)
+        return [model.modelid for model in models]
+
+    def get_model_by_ids(self, modelids: List[str], modelType) -> Tuple[List[MLModel], List[str]]:
+        models = self.get_all_models(modelType)
+        models_to_build = []
+        modelids_to_reject = []
+        for modelid in modelids:
+            m = [model for model in models if model.modelid == modelid]
+            if m:
+                models_to_build.append(m[0])
+            else:
+                modelids_to_reject.append(modelid)
+        return (models_to_build, modelids_to_reject)
+
+
+    def submit_model_jobs(self, user_id, project_id, optimizeUsing, modelType, modelids: List[str] = []):
         """
         modelType: one of ["regressor", "classifier", "multi_classifier"]
         each pipeline job is given:
@@ -788,66 +806,119 @@ class ModelsTasksProducer(RedisTasksProducer):
         use hashmap 'userid:projectid:CANCELLED:DB_GEN' to track cancellations of jobid
             set(jobids) # use sentinel value 'SENTINEL' while instantiating the set
         """
-        # config data used for model building
-        pipe_result_hashmap = (
-            f"{user_id}:{project_id}:{jobqueue_config.pipe_queue}:{jobqueue_config.DB_GEN}")
+        modelids = list(set(modelids))
+        if not modelids:
+            modelids = self.get_all_model_ids_for_type(modelType)
 
-        # hashmap to store the pipe results
-        model_result_hashmap = (
-            f"{user_id}:{project_id}:{jobqueue_config.models_queue}:{jobqueue_config.DB_GEN}")
-
-        cancelled_hashmap = f"{user_id}:{project_id}:CANCELLED:{jobqueue_config.DB_GEN}"
+        class ModelJobs(BaseModel):
+            models_accepted: List[str]
+            models_rejected: List[str]
+            models_to_build: List[str]
+            models_to_ignore: List[str]
 
         result = None
-        with self.redis.pipeline() as pipe:
-            watch_error_count = 0
-            while True:
-                try:
-                    pipe.watch(pipe_result_hashmap, model_result_hashmap)
-                    current_stage, pipe_status = pipe.hmget(
-                        pipe_result_hashmap,
-                        "current.stage",
-                        "pipe:STATUS",
-                    )
 
-                    if (int(pipe_status) == 0) and (current_stage == self.current_stage):
-                        # Submission of model jobs and setting of pipe status are executed as
-                        # a single transaction
-                        pipe.multi()
-                        mss = {}
-                        for model in get_all_models(modelType):
-                            self.modeljob_add(client=pipe,
-                                              keys=[
-                                                  self.jobq, 'modelid', model.modelid, 'modelname',
-                                                  model.modelname, 'filename', model.filename, 'model_type',
-                                                  modelType, 'pipe_result_hashmap', pipe_result_hashmap,
-                                                  "field_name", "finalconfig:GET", "model_result_hashmap",
-                                                  model_result_hashmap, "cancelled_hashmap",
-                                                  cancelled_hashmap, f"{model.modelid}:JOBID"
-                                              ])
-                            mss[f"{user_id}:{project_id}:{model.modelid}"] = 0
-                        for model in get_all_models(modelType):
-                            pipe.hset(model_result_hashmap, f"{model.modelid}:STATUS", "WAIT")
-                        pipe.zadd(self.models_sorted_set, mss)
-                        pipe.hset(pipe_result_hashmap, "pipe:STATUS", "1")
-                        pipe.hset(model_result_hashmap, "model_type", modelType)
-                        pipe.hset(model_result_hashmap, "optimizeUsing", optimizeUsing)
-                        result = pipe.execute()
-                        from devtools import debug
-                        debug(result)
-                    break
-                except redis.WatchError:
-                    if watch_error_count > 100:
+        models_accepted = []
+        # `modelids` for which the `model.modelType` does not match `modelType`
+        modelids_rejected = []
+        models_to_build = []
+        # if the models is rerun and the status is not in ["DONE", "ERROR", "CANCELLED"] then
+        # the models are not added to the job_queue
+        models_to_ignore = []
+
+        models_accepted, modelids_rejected = self.get_model_by_ids(modelids, modelType)
+
+        if models_accepted:
+            # config data used for model building
+            pipe_result_hashmap = (
+                f"{user_id}:{project_id}:{jobqueue_config.pipe_queue}:{jobqueue_config.DB_GEN}")
+            # hashmap to store the pipe results
+            model_result_hashmap = (
+                f"{user_id}:{project_id}:{jobqueue_config.models_queue}:{jobqueue_config.DB_GEN}")
+            # hashmap to store cancelled jobids
+            cancelled_hashmap = f"{user_id}:{project_id}:CANCELLED:{jobqueue_config.DB_GEN}"
+
+            with self.redis.pipeline() as pipe:
+                watch_error_count = 0
+                while True:
+                    try:
+                        pipe.watch(pipe_result_hashmap, model_result_hashmap)
+                        current_stage, pipe_status = pipe.hmget(
+                            pipe_result_hashmap,
+                            "current.stage",
+                            "pipe:STATUS",
+                        )
+
+                        pipe_status = int(pipe_status)
+                        pipe_ok = (pipe_status == 0) or (pipe_status == 1)
+
+                        if pipe_status == 1:
+                            job_rerun = True
+                        else:
+                            job_rerun = False
+
+                        if pipe_ok and (current_stage == self.current_stage):
+                            if job_rerun:
+                                models_status_keys = []
+                                for model in models_accepted:
+                                    models_status_keys.append(f"{model.modelid}:STATUS")
+                                models_status = pipe.hmget(model_result_hashmap, *models_status_keys)
+                                models_to_build = []
+                                models_to_ignore = []
+                                for (status, model) in zip(models_status, models_accepted):
+                                    if status in ["DONE", "ERROR", "CANCELLED"]:
+                                        models_to_build.append(model)
+                                    else:
+                                        models_to_ignore.append(model)
+                                if not models_to_build:
+                                    result = None
+                                    break
+                            else:
+                                models_to_build = models_accepted
+                                models_to_ignore = []
+
+                            # Submission of model jobs and setting of pipe status are executed as
+                            # a single transaction
+                            pipe.multi()
+                            mss = {}
+                            for model in models_to_build:
+                                self.modeljob_add(
+                                    client=pipe,
+                                    keys=[
+                                        self.jobq, 'modelid', model.modelid, 'modelname', model.modelname,
+                                        'filename', model.filename, 'model_type', modelType,
+                                        'pipe_result_hashmap', pipe_result_hashmap, "field_name",
+                                        "finalconfig:GET", "model_result_hashmap", model_result_hashmap,
+                                        "cancelled_hashmap", cancelled_hashmap, f"{model.modelid}:JOBID"
+                                    ])
+                                if not job_rerun:
+                                    mss[f"{user_id}:{project_id}:{model.modelid}"] = 0
+                            for model in models_to_build:
+                                pipe.hset(model_result_hashmap, f"{model.modelid}:STATUS", "WAIT")
+                            if not job_rerun:
+                                pipe.zadd(self.models_sorted_set, mss)
+                                pipe.hset(pipe_result_hashmap, "pipe:STATUS", "1")
+                                pipe.hset(model_result_hashmap, "model_type", modelType)
+                                pipe.hset(model_result_hashmap, "optimizeUsing", optimizeUsing)
+                            result = pipe.execute()
                         break
-                    if watch_error_count > 20:
-                        time.sleep(0.1)
-                    watch_error_count += 1
-                    continue
-                # Any other exception type is not expected
-                except Exception as ex:
-                    print(ex)
-                    raise
-        return result
+                    except redis.WatchError:
+                        if watch_error_count > 100:
+                            break
+                        if watch_error_count > 20:
+                            time.sleep(0.1)
+                        watch_error_count += 1
+                        continue
+                    # Any other exception type is not expected
+                    except Exception as ex:
+                        print(ex)
+                        raise
+
+        return (result,
+                ModelJobs(models_accepted=[model.modelid for model in models_accepted],
+                          models_rejected=modelids_rejected,
+                          models_to_build=[model.modelid for model in models_to_build],
+                          models_to_ignore=[model.modelid for model in models_to_ignore]))
 
     # returns a dictionary of { modelid: status }
     def get_model_status(self, user_id, project_id):

@@ -1,3 +1,5 @@
+from typing import Optional
+from pydantic.main import BaseModel
 from sanic import Blueprint, response
 
 from ..store import model_producer, pipe_producer, store_backend
@@ -7,6 +9,8 @@ models_bp = Blueprint("models_service", url_prefix="/tab/v1/models")
 
 @models_bp.post("/build")
 async def model_build(request):
+    models_dict: Optional[BaseModel] = None
+    data = []
     try:
         if "userid" not in request.args and "projectid" not in request.args:
             info = "Bad request. missing parameters"
@@ -27,9 +31,6 @@ async def model_build(request):
                 elif data["pipe_status"] == "-1":
                     info = f"Bad request. Pipeline is freezed at {data['current_stage']} due to an error."
                     status = 400
-                elif data["pipe_status"] != "0":
-                    info = f"Bad request. Duplicate request to submit model jobs."
-                    status = 400
                 else:
                     data = pipe_producer.get_stage_data(
                         request.ctx.userid,
@@ -42,22 +43,42 @@ async def model_build(request):
                     else:
                         model_type = data["data"]["model_type"]
                         optimizeUsing = data["data"]["optimizeUsing"]
-                        data = model_producer.submit_model_jobs(
-                            request.ctx.userid,
-                            request.args["projectid"][0],
-                            model_type,
-                            optimizeUsing,
-                        )
+                        if "modelids" not in request.json:
+                            modelids = []
+                        else:
+                            modelids = request.json["modelids"]
+                        print(f"{modelids=}***********")
+
+                        res, models_dict = model_producer.submit_model_jobs(request.ctx.userid,
+                                                                            request.args["projectid"][0],
+                                                                            optimizeUsing, model_type,
+                                                                            modelids)
                         from devtools import debug
-                        debug(data)
-                        if data is None:
-                            info = f"Something fatal happened while submitting models jobs for {request.args['projectid'][0]}"
-                            status = 500
+                        debug(res, models_dict)
+                        # no model job was queued
+                        if not res:
+                            status = 400
+                            # there were model job to be
+                            if models_dict.models_to_build:
+                                status = 500
+                                info = f"Something fatal happened while submitting models jobs for {request.args['projectid'][0]}"
+                            elif len(models_dict.models_rejected) == len(modelids):
+                                info = "None of the modelids provided were relavant for this project. "
+                            elif len(models_dict.models_to_ignore) == len(modelids):
+                                info = "None of the modelids have status in [DONE, ERROR, CANCELLED]"
+                            elif (len(models_dict.models_rejected)
+                                  + len(models_dict.models_to_ignore)) == len(modelids):
+                                info = "Some of the modelids were irrelavant for the project " +\
+                                        "and the rest of them do not have status in [DONE, ERROR, CANCELLED]."
+                            else:
+                                status = 500
+                                info = "Something unknown happended."
                         else:
                             data = pipe_producer.current_pipe_state(request.ctx.userid,
                                                                     request.args["projectid"][0])
                             if data is None:
-                                info = f"Submitted model jobs, but couldn't get current state of the pipeline. Try refreshing the page"
+                                info = "Submitted jobs, but couldn't get current state of the pipeline." +\
+                                        "Try refreshing the page"
                                 status = 500
                             else:
                                 data["id"] = request.args["projectid"][0]
@@ -66,20 +87,21 @@ async def model_build(request):
                                 info = f"Successfully submitted {model_type} model jobs for the {proj[0]} project"
                                 status = 200
     except Exception as ex:
-        # import traceback
+        import traceback
 
-        # print(traceback.format_exc())
+        print(traceback.format_exc())
         info = ex.args[0]
         status = 500
     finally:
         from devtools import debug
-        debug(data)
+        debug(models_dict.dict())
         return response.json(
             {
                 "success": True if (status == 200) else False,
                 "version": "v1",
                 "info": info,
                 "data": data if (status == 200) else {},
+                "models_dict": models_dict.dict(),
             },
             status=status,
         )
@@ -87,6 +109,7 @@ async def model_build(request):
 
 @models_bp.get("/")
 async def model_results(request):
+    data = {}
     try:
         if "userid" not in request.args and "projectid" not in request.args:
             info = "Bad request. missing parameters"
@@ -127,6 +150,7 @@ async def model_results(request):
 
 @models_bp.post("/")
 async def get_model_result(request):
+    data = {}
     try:
         if "userid" not in request.args and "projectid" not in request.args:
             info = "Bad request. missing parameters"
