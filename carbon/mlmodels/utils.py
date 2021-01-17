@@ -388,17 +388,32 @@ def rocCurveforClassPredictProba(X_train, X_test, Y_train, Y_test, catClasses, c
     tpr = dict()
     roc_auc = dict()
     # print(Y_test.shape, Y_score.shape)
+    # sample_threshold = 200
     for i in range(catClasses.shape[0]):
         if catClasses.shape[0] > 2:
             fpr[i], tpr[i], _ = roc_curve(Y_test[:], Y_score[:, i], pos_label=catClasses[i])
             roc_auc[i] = auc(fpr[i], tpr[i])
-            if len(_) > 200:
-                fpr[i], tpr[i] = sample(zip(fpr[i], tpr[i]), 200)
+            # print(fpr[i].dtype, tpr[i].dtype, fpr[i].shape, tpr[i].shape)
+            # if len(_) > sample_threshold:
+            #     indices = sample(range(min(len(fpr[i]), len(tpr[i])) - 1), k=sample_threshold)
+            #     fpr[i] = pd.DataFrame([fpr[i][k] for k in indices])
+            #     tpr[i] = pd.DataFrame([tpr[i][k] for k in indices])
+            #     print(fpr[i].dtype, tpr[i].dtype, fpr[i].shape, tpr[i].shape)
+            # fprtprlist = sample(list(zip(fpr[i], tpr[i])), 200)
+            # fprlist = []
+            # tprlist = []
+            # print(list(zip(fpr[i], tpr[i])))
+            # for element in fprlist:
+            #     fprlist.append(element[0])
+            #     tprlist.append(element[0])
+            # fpr[i] = fprlist
+            # tpr[i] = tprlist
         else:
             fpr[i], tpr[i], _ = roc_curve(Y_test[:], Y_score[:, i], pos_label=catClasses[0])
             roc_auc[i] = auc(fpr[i], tpr[i])
             # if len(_) > 200:
             #     fpr[i], tpr[i] = sample(zip(fpr[i], tpr[i]), 200)
+    print(fpr.keys(), tpr.keys())
     return fpr, tpr, roc_auc, Y_pred, Y_score
 
 
@@ -416,6 +431,7 @@ def rocCurveforClassDecisionFunction(X_train, X_test, Y_train, Y_test, catClasse
     #     Y_test_sample = sample(Y_test,200)
     #     Y_score_sample =
 
+    # sample_threshold = 200
     for i in range(catClasses.shape[0]):
         if catClasses.shape[0] > 2:
             fpr[i], tpr[i], _ = roc_curve(
@@ -424,13 +440,28 @@ def rocCurveforClassDecisionFunction(X_train, X_test, Y_train, Y_test, catClasse
                 pos_label=catClasses[1],
             )
             roc_auc[i] = auc(fpr[i], tpr[i])
-            if len(_) > 200:
-                fpr[i], tpr[i] = sample(zip(fpr[i], tpr[i]), 200)
+            print(fpr[i].dtype, tpr[i])
+            # if len(_) > sample_threshold:
+            #     indices = sample(range(min(len(fpr[i]), len(tpr[i])) - 1), k=sample_threshold)
+            #     fpr[i] = pd.DataFrame([fpr[i][k] for k in indices])
+            #     tpr[i] = pd.DataFrame([tpr[i][k] for k in indices])
+            #     print(fpr[i].dtype, tpr[i].dtype, fpr[i].shape, tpr[i].shape)
+
+            # fprtprlist = sample(list(zip(fpr[i], tpr[i])), 200)
+            # fprlist = []
+            # tprlist = []
+            # print(list(zip(fpr[i], tpr[i])))
+            # for element in fprlist:
+            #    fprlist.append(element[0])
+            #    tprlist.append(element[0])
+            # fpr[i] = fprlist
+            # tpr[i] = tprlist
         else:
             fpr[i], tpr[i], _ = roc_curve(Y_test[:], Y_score[:], pos_label=catClasses[i])
             roc_auc[i] = auc(fpr[i], tpr[i])
             # if len(_) > 200:
             #     fpr[i], tpr[i] = sample(zip(fpr[i], tpr[i]), 200)
+    print(fpr.keys(), tpr.keys())
     return fpr, tpr, roc_auc, Y_pred, Y_score
 
 
