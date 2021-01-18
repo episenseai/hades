@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "carbon"
-version = "0.1.0"
+version = "3.0"
 description = "backend app"
 authors = ["Sushant Kumar <sushant.mithila@gmail.com>"]
 license = "LICENSE"
