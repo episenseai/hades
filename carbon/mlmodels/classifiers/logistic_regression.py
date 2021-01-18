@@ -72,7 +72,7 @@ def gridSearchLogisticRegressionClf(X, Y, config):
     make_pipeline = Pipeline(steps)
     gsClf = GridSearchCV(
         make_pipeline,
-        param_grid={"clf__C": [0.0001, 10000]},
+        param_grid={"clf__C": [0.01, 0.1, 1, 10, 100]},
         cv=config["data"]["cv"]["folds"],
     )
     gsClf_fit = gsClf.fit(X, Y)
