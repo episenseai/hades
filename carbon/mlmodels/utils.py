@@ -364,14 +364,24 @@ def deliverRoCResult(catClasses, fpr, tpr, roc_auc):
     return roc
 
 
-def deliverformattedResultClf(config, catClasses, metricResult, confusion, roc):
-    returnResult = {
-        "classes": list(catClasses),
-        "metrics": {"val": metricResult[config["data"]["optimizeUsing"]]},
-        # confusion matrix: [[TP, FP], [FN, TN]]
-        "cm": confusion.tolist(),
-        "roc": roc,
-    }
+def deliverformattedResultClf(config, catClasses, metricResult, confusion, roc, grid_results=None):
+    if grid_results:
+        returnResult = {
+            "classes": list(catClasses),
+            "metrics": {"val": metricResult[config["data"]["optimizeUsing"]]},
+            # confusion matrix: [[TP, FP], [FN, TN]]
+            "cm": confusion.tolist(),
+            "roc": roc,
+            "grid_results": grid_results,
+        }
+    else:
+        returnResult = {
+            "classes": list(catClasses),
+            "metrics": {"val": metricResult[config["data"]["optimizeUsing"]]},
+            # confusion matrix: [[TP, FP], [FN, TN]]
+            "cm": confusion.tolist(),
+            "roc": roc,
+        }
     # pprint(returnResult)
     return returnResult
 
@@ -650,6 +660,27 @@ def deliverformattedResult(config, metricResult, Y_pred, Y_test):
         else {"p": x1, "t": y1},
     }
     return returnResult
+
+
+def convert_cvresults_tolist(cv_results):
+    cvlist = []
+    for key, value in cv_results.items():
+        if (
+            not (key == "params")
+            and not (key.endswith("time"))
+            and not (("split" in key) and ("_test_score" in key))
+            and not (key == "std_test_score")
+        ):
+            # if not (key.endswith("time")):
+            #     if not (("split" in key) and ("_test_score" in key)):
+            cvlist.append([key] + value.tolist())
+    for i, element in enumerate(cvlist):
+        for j, val in enumerate(element):
+            if isinstance(val, float):
+                cvlist[i][j] = round(val, 2)
+                print(val)
+    print(cvlist)
+    return cvlist
 
 
 # def binCreationCategory(dfColumn):

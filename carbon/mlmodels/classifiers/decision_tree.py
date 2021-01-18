@@ -1,5 +1,6 @@
 from pprint import pprint
 from random import sample
+import json
 
 from sklearn.metrics import auc, confusion_matrix, roc_curve
 from sklearn.model_selection import GridSearchCV, train_test_split
@@ -16,6 +17,7 @@ from carbon.mlmodels.utils import (
     loadData,
     metricResultMultiClassifier,
     splitTrainTestdataset,
+    convert_cvresults_tolist,
 )
 
 # from pprint import pprint
@@ -40,7 +42,7 @@ def build(confign, model_config=None):
     # print("start", datetime.now())
     # pprint(model_config)
 
-    clf_gini, clf_gini_fit = gridSearchDecisionTreeClf(X_train, Y_train, config, model_config)
+    clf_gini, clf_gini_fit, clf_results = gridSearchDecisionTreeClf(X_train, Y_train, config, model_config)
     # print("end", datetime.now())
 
     # Model Evaluation
@@ -65,7 +67,7 @@ def build(confign, model_config=None):
     roc = deliverRoCResult(catClasses, fpr, tpr, roc_auc)
 
     return (
-        deliverformattedResultClf(config, catClasses, metricResult, confusion, roc),
+        deliverformattedResultClf(config, catClasses, metricResult, confusion, roc, grid_results=clf_results),
         clf_gini_fit,
     )
 
@@ -109,40 +111,48 @@ def gridSearchDecisionTreeClf(X, Y, config, model_config=None):
                 # "max_depth": range(2, len(finalFeatureListGenerator(config)), 2),
             },
             cv=config["data"]["cv"]["folds"],
-            return_train_score=True,
+            return_train_score=False,
         )
         gsClf_fit = gsClf.fit(X, Y)
-        gsclf_results = [
-            gsClf_fit.cv_results_,
-            gsClf_fit.best_estimator_,
-            gsClf_fit.best_score_,
-            gsClf_fit.best_params_,
-            gsClf_fit.best_index_,
-        ]
-        pprint(gsclf_results)
+        gsclf_results = {
+            "cvresult_list": convert_cvresults_tolist(gsClf_fit.cv_results_),
+            "mean_test_score": gsClf_fit.cv_results_["mean_test_score"].tolist(),
+            "params": gsClf_fit.cv_results_["params"],
+            # gsClf_fit.best_estimator_,
+            "best_score": round(gsClf_fit.best_score_, 2),
+            "best_params": gsClf_fit.best_params_,
+            # "scorer_function": str(gsClf_fit.scorer_),
+            # gsClf_fit.best_index_,
+        }
+
+        # pprint(gsclf_results)
         gsClf_fit_estimator = gsClf_fit.best_estimator_
         # print(gsClf_fit.best_params_, gsClf_fit.best_score_)
-        return gsClf, gsClf_fit_estimator
+        return gsClf, gsClf_fit_estimator, gsclf_results
     else:
         # print(model_config)
         gsClf = GridSearchCV(
             DecisionTreeClassifier(random_state=100),
             param_grid=model_config,
             cv=config["data"]["cv"]["folds"],
-            return_train_score=True,
+            return_train_score=False,
         )
         gsClf_fit = gsClf.fit(X, Y)
-        gsclf_results = [
-            gsClf_fit.cv_results_,
-            gsClf_fit.best_estimator_,
-            gsClf_fit.best_score_,
-            gsClf_fit.best_params_,
-            gsClf_fit.best_index_,
-        ]
-        pprint(gsclf_results)
+        gsclf_results = {
+            "cvresult_list": convert_cvresults_tolist(gsClf_fit.cv_results_),
+            "mean_test_score": gsClf_fit.cv_results_["mean_test_score"].tolist(),
+            "params": gsClf_fit.cv_results_["params"],
+            # gsClf_fit.best_estimator_,
+            "best_score": round(gsClf_fit.best_score_, 2),
+            "best_params": gsClf_fit.best_params_,
+            # "scorer_function": str(gsClf_fit.scorer_),
+            # gsClf_fit.best_index_,
+        }
+
+        # pprint(gsclf_results)
         gsClf_fit_estimator = gsClf_fit.best_estimator_
         # print(gsClf_fit.best_params_, gsClf_fit.best_score_)
-        return gsClf, gsClf_fit_estimator
+        return gsClf, gsClf_fit_estimator, gsclf_results
 
 
 default_hyperparameters = {
@@ -156,7 +166,9 @@ default_hyperparameters = {
     "min_samples_split": [2],  # "min_samples_split":int or float, default=2
     # The minimum number of samples required to split an internal node:
     "min_samples_leaf": [1],  # min_samples_leaf: int or float, default=1
-    # The minimum number of samples required to be at a leaf node. A split point at any depth will only be considered if it leaves at least min_samples_leaf training samples in each of the left and right branches.
+    # The minimum number of samples required to be at a leaf node.
+    # A split point at any depth will only be considered if it leaves at
+    # least min_samples_leaf training samples in each of the left and right branches.
     "min_weight_fraction_leaf": [0.0],  # min_weight_fraction_leaf: float, default=0.0
     # The minimum weighted fraction of the sum total of weights (of all the input samples) required to be at a leaf node. Samples have equal weight when sample_weight is not provided.
     "max_features": [None],  # max_features: int, float or {“auto”, “sqrt”, “log2”}, default=None
