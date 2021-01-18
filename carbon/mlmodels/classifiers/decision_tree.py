@@ -107,7 +107,7 @@ def gridSearchDecisionTreeClf(X, Y, config, model_config=None):
             DecisionTreeClassifier(criterion="gini", random_state=100),
             param_grid={
                 "min_samples_split": range(2, 32, 10),
-                # "max_features": range(2, len(finalFeatureListGenerator(config)), 2),
+                "max_features": range(2, len(finalFeatureListGenerator(config)), 10),
                 # "max_depth": range(2, len(finalFeatureListGenerator(config)), 2),
             },
             cv=config["data"]["cv"]["folds"],
@@ -120,7 +120,7 @@ def gridSearchDecisionTreeClf(X, Y, config, model_config=None):
             "params": gsClf_fit.cv_results_["params"],
             # gsClf_fit.best_estimator_,
             "best_score": round(gsClf_fit.best_score_, 2),
-            "best_params": gsClf_fit.best_params_,
+            "best_params": list(zip(gsClf_fit.best_params_.keys(), gsClf_fit.best_params_.values())),
             # "scorer_function": str(gsClf_fit.scorer_),
             # gsClf_fit.best_index_,
         }
@@ -144,7 +144,7 @@ def gridSearchDecisionTreeClf(X, Y, config, model_config=None):
             "params": gsClf_fit.cv_results_["params"],
             # gsClf_fit.best_estimator_,
             "best_score": round(gsClf_fit.best_score_, 2),
-            "best_params": gsClf_fit.best_params_,
+            "best_params": list(zip(gsClf_fit.best_params_.keys(), gsClf_fit.best_params_.values())),
             # "scorer_function": str(gsClf_fit.scorer_),
             # gsClf_fit.best_index_,
         }

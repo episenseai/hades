@@ -14,6 +14,7 @@ from carbon.mlmodels.utils import (
     metricResultMultiClassifier,
     rocCurveforClassPredictProba,
     splitTrainTestdataset,
+    convert_cvresults_tolist,
 )
 
 # from pprint import pprint
@@ -34,7 +35,7 @@ def build(confign):
     X_train, X_test, Y_train, Y_test = splitTrainTestdataset(X, Y, config)
 
     # print("start", datetime.now())
-    clf, clf_fit = gridSearchBernoulliNBClf(X_train, Y_train, config)
+    clf, clf_fit, clf_results = gridSearchBernoulliNBClf(X_train, Y_train, config)
     # print("end", datetime.now())
 
     # Plot of a ROC curve for a specific class
@@ -46,7 +47,7 @@ def build(confign):
     # plotRoCCurve(catClasses, fpr, tpr, roc_auc)
     roc = deliverRoCResult(catClasses, fpr, tpr, roc_auc)
     return (
-        deliverformattedResultClf(config, catClasses, metricResult, confusion, roc),
+        deliverformattedResultClf(config, catClasses, metricResult, confusion, roc, grid_results=clf_results),
         clf_fit,
     )
 
@@ -61,7 +62,17 @@ def gridSearchBernoulliNBClf(X, Y, config):
     )
     gsClf_fit = gsClf.fit(X, Y)
     gsClf_fit_estimator = gsClf_fit.best_estimator_
-    return gsClf, gsClf_fit_estimator
+    gsclf_results = {
+        "cvresult_list": convert_cvresults_tolist(gsClf_fit.cv_results_),
+        "mean_test_score": gsClf_fit.cv_results_["mean_test_score"].tolist(),
+        "params": gsClf_fit.cv_results_["params"],
+        # gsClf_fit.best_estimator_,
+        "best_score": round(gsClf_fit.best_score_, 2),
+        "best_params": list(zip(gsClf_fit.best_params_.keys(), gsClf_fit.best_params_.values())),
+        # "scorer_function": str(gsClf_fit.scorer_),
+        # gsClf_fit.best_index_,
+    }
+    return gsClf, gsClf_fit_estimator, gsclf_results
 
 
 # # pprint(build_model(config1))
