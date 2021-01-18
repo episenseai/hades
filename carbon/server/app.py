@@ -121,7 +121,7 @@ async def beforeStart(app, loop):
 # This is run after the server has successfully started
 @app.listener("after_server_start")
 async def notify_server_started(app, loop):
-    printBox(f"Starting app - (episense ai) (ENV = {server_config.app.env})")
+    printBox(f"Running [[ carbon :: SERVER ]] app (ENV = {server_config.app.env})")
 
 
 # This is run before the server starts shuttings down
