@@ -1,7 +1,6 @@
 from multiprocessing import Process
 
 from ..store.backend.redis import ModelsTasksConsumer
-# Classifier models
 from .classifiers import (
     adaboost,
     bagging,
@@ -17,7 +16,6 @@ from .classifiers import (
     sgd,
 )
 from .config import mlmodels_config
-# Regressor models
 from .regressors import (
     decision_tree as decision_tree_regressor,
     k_neighbors,
@@ -28,8 +26,6 @@ from .regressors import (
     sgd_nystroem,
     theilsen,
 )
-
-# mod_consumer = ModelsTasksConsumer(redis_pool)
 
 # funcion to process model job workers
 func_dict = {
