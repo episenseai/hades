@@ -630,7 +630,7 @@ def metricResultRegressor(Y_test, Y_pred, Y_score):
     return metricResult
 
 
-def deliverformattedResult(config, metricResult, Y_pred, Y_test):
+def deliverformattedResult(config, metricResult, Y_pred, Y_test, grid_results=None):
     # predicted vs true plot
     if Y_test.shape[0] > 400:
         predicted_values = []
@@ -642,23 +642,44 @@ def deliverformattedResult(config, metricResult, Y_pred, Y_test):
         for pt in predicted_sample:
             x1.append(pt[0])
             y1.append(pt[1])
-    returnResult = {
-        "metrics": {
-            "val": round(metricResult[config["data"]["optimizeUsing"]], 2),
-            # R-Squared
-            "r2": round(metricResult["r2_score"], 2),
-            # RMSE
-            "rmse": round(metricResult["mean_squared_error"], 2),
-            # MAE : Mean Absolute Error
-            "mae": round(metricResult["mean_absolute_error"], 2),
-            # MAPE : Mean Squared Log Error
-            "msle": metricResult["mean_squared_log_error"],
-        },
-        # predicted vs true plot
-        "pt": {"p": [round(float(x), 2) for x in Y_pred], "t": list(Y_test)}
-        if Y_test.shape[0] < 400
-        else {"p": x1, "t": y1},
-    }
+    if grid_results:
+        returnResult = {
+            "metrics": {
+                "val": round(metricResult[config["data"]["optimizeUsing"]], 2),
+                # R-Squared
+                "r2": round(metricResult["r2_score"], 2),
+                # RMSE
+                "rmse": round(metricResult["mean_squared_error"], 2),
+                # MAE : Mean Absolute Error
+                "mae": round(metricResult["mean_absolute_error"], 2),
+                # MAPE : Mean Squared Log Error
+                "msle": metricResult["mean_squared_log_error"],
+            },
+            # predicted vs true plot
+            "pt": {"p": [round(float(x), 2) for x in Y_pred], "t": list(Y_test)}
+            if Y_test.shape[0] < 400
+            else {"p": x1, "t": y1},
+            "grid_results": grid_results,
+        }
+    else:
+        returnResult = {
+            "metrics": {
+                "val": round(metricResult[config["data"]["optimizeUsing"]], 2),
+                # R-Squared
+                "r2": round(metricResult["r2_score"], 2),
+                # RMSE
+                "rmse": round(metricResult["mean_squared_error"], 2),
+                # MAE : Mean Absolute Error
+                "mae": round(metricResult["mean_absolute_error"], 2),
+                # MAPE : Mean Squared Log Error
+                "msle": metricResult["mean_squared_log_error"],
+            },
+            # predicted vs true plot
+            "pt": {"p": [round(float(x), 2) for x in Y_pred], "t": list(Y_test)}
+            if Y_test.shape[0] < 400
+            else {"p": x1, "t": y1},
+        }
+
     return returnResult
 
 

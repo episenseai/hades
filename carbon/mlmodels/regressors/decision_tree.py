@@ -12,6 +12,7 @@ from carbon.mlmodels.utils import (
     loadData,
     metricResultRegressor,
     splitTrainTestdataset,
+    convert_cvresults_tolist,
 )
 
 # from Models.config import config1, config2, config3
@@ -32,7 +33,7 @@ def build(confign):
     X_train, X_test, Y_train, Y_test = splitTrainTestdataset(X, Y, config)
 
     # print("start", datetime.now())
-    reg, reg_fit = gridSearchDecisionTreeRegressor(X_train, Y_train, config)
+    reg, reg_fit, reg_results = gridSearchDecisionTreeRegressor(X_train, Y_train, config)
     # print("end", datetime.now())
 
     # print(reg.best_params_, reg.best_score_)
@@ -45,7 +46,7 @@ def build(confign):
     metricResult = metricResultRegressor(Y_test, Y_pred, Y_score)
     # plotPredictedVsTrueCurve(Y_pred, Y_test, X_test, modelName)
 
-    return deliverformattedResult(config, metricResult, Y_pred, Y_test), reg_fit
+    return deliverformattedResult(config, metricResult, Y_pred, Y_test, grid_results=reg_results), reg_fit
 
 
 def gridSearchDecisionTreeRegressor(X, Y, config):
@@ -65,8 +66,18 @@ def gridSearchDecisionTreeRegressor(X, Y, config):
     )
     gsreg_fit = gsreg.fit(X, Y)
     gsreg_fit_estimator = gsreg_fit.best_estimator_
-
-    return gsreg, gsreg_fit_estimator
+    gsreg_results = {
+        "cvresult_list": convert_cvresults_tolist(gsreg_fit.cv_results_),
+        "mean_test_score": gsreg_fit.cv_results_["mean_test_score"].tolist(),
+        "params": gsreg_fit.cv_results_["params"],
+        # gsClf_fit.best_estimator_,
+        "best_score": round(gsreg_fit.best_score_, 2),
+        "best_params": list(zip(gsreg_fit.best_params_.keys(), gsreg_fit.best_params_.values())),
+        # "scorer_function": str(gsClf_fit.scorer_),
+        # gsClf_fit.best_index_,
+    }
+    # print(gsreg_fit.cv_results_)
+    return gsreg, gsreg_fit_estimator, gsreg_results
 
 
 # pprint(build_model(config3))
