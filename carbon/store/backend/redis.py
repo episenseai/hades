@@ -1516,9 +1516,3 @@ class Application:
             key=lambda p: p["timestamp"],
             reverse=True,
         )
-
-
-# redis_pool = redis.ConnectionPool(**server_config.redis.dict())
-# pipe_producer = PipeTasksProducer(redis_pool)
-# model_producer = ModelsTasksProducer(redis_pool)
-# main_app = Application( redis_pool)
