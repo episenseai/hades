@@ -1,5 +1,5 @@
 file: export_insurancefrauds_new.csv.zip; target column: fraud_reported (last column)
-file: crime_utf8.csv; target column: 
+file: crime_utf8.csv; target column:
 file: loan-xaa.csv.zip; target: sub_grade
 file: loan-xaa.csv.zip; target: loan_amount; metric: r2 score
 
@@ -7,6 +7,3 @@ Prediction deployment
 Hyperparameter optimization
 Data cleaning (can be added after consume step)
 seeing model results
-
-
-
