@@ -69,10 +69,6 @@ def main_task_wrapper(func, arg, result_queue: Queue):
 
 
 def status_task_wrapper(result_queue: Queue, redis_config_dict, cancelled_hashmap, jobid):
-    import time
-
-    import redis
-
     try:
         pool = redis.Redis(connection_pool=redis.ConnectionPool(**redis_config_dict))
         while True:
@@ -80,8 +76,7 @@ def status_task_wrapper(result_queue: Queue, redis_config_dict, cancelled_hashma
             if cancelled_status != 0:
                 status = True
                 break
-            else:
-                time.sleep(2)
+            time.sleep(2)
         result_queue.put(TaskCancelled(status=status), block=True, timeout=120)
     except Exception as ex:
         tb = traceback.format_exc()
@@ -168,7 +163,8 @@ class RedisTasks:
                 # create consumer group
                 self.redis.xgroup_create(q, cg)
 
-    def to_JSON(self, item):
+    @staticmethod
+    def to_JSON(item):
         """
         to convert model results dictionary to json
         """
@@ -177,7 +173,8 @@ class RedisTasks:
         except Exception as ex:
             raise JSONEncodeError from ex
 
-    def from_JSON(self, item):
+    @staticmethod
+    def from_JSON(item):
         """
         to parse JSON config data from redis into python dictionary
         """
@@ -186,7 +183,8 @@ class RedisTasks:
         except Exception as ex:
             raise JSONDecodeError from ex
 
-    def pickle_gzip(self, obj):
+    @staticmethod
+    def pickle_gzip(obj):
         """
         Pickle dump the object and base64 encode it to store on the redis
             - helpful in storing trained models produced during production
@@ -196,7 +194,8 @@ class RedisTasks:
         except Exception as ex:
             raise PickleError from ex
 
-    def unpickle_unzip(self, obj_dump_encoded):
+    @staticmethod
+    def unpickle_unzip(obj_dump_encoded):
         """
         base64 decode the bytes got from redis and then unpickle into python object
             - helpful in reloading trained models for prediction
@@ -206,10 +205,12 @@ class RedisTasks:
         except Exception as ex:
             raise UnpickleError from ex
 
-    def encode(self, obj):
+    @staticmethod
+    def encode(obj):
         return gzip.compress(base64.b64encode(gzip.compress(pickle.dumps(obj, protocol=4))))
 
-    def decode(self, bbytes):
+    @staticmethod
+    def decode(bbytes):
         return pickle.loads(gzip.decompress(base64.b64decode(gzip.decompress(bbytes))))
 
     def hashmap(self, user_id, project_id):
@@ -219,8 +220,6 @@ class RedisTasks:
 class RedisTasksError(Exception):
     def __init__(self, msg="RedisTasksError"):
         super().__init__(msg)
-        import traceback
-
         self.stack_trace = traceback.format_exc()
 
 
@@ -521,7 +520,7 @@ class PipeTasksProducer(RedisTasksProducer):
                         "error:TYPE",
                         "error:STACK",
                     )
-                    result, *ignore = pipe.execute()
+                    result, *_ = pipe.execute()
                     if any(map(lambda x: x is None, result)):
                         break
                     result = {
@@ -770,7 +769,8 @@ class ModelsTasksProducer(RedisTasksProducer):
         """
         self.modeljob_add = self.redis.register_script(lua_modeljob_submit.strip())
 
-    def get_all_models(self, modelType):
+    @staticmethod
+    def get_all_models(modelType):
         if modelType == "regressor":
             return regressors.models
         elif modelType == "classifier":
@@ -794,7 +794,9 @@ class ModelsTasksProducer(RedisTasksProducer):
                 modelids_to_reject.append(modelid)
         return (models_to_build, modelids_to_reject)
 
-    def submit_model_jobs(self, user_id, project_id, optimizeUsing, modelType, modelids: List[str] = []):
+    def submit_model_jobs(
+        self, user_id, project_id, optimizeUsing, modelType, modelids: Optional[List[str]] = None
+    ):  # pylint: disable=unsubscriptable-object
         """
         modelType: one of ["regressor", "classifier", "multi_classifier"]
         each pipeline job is given:
@@ -809,7 +811,10 @@ class ModelsTasksProducer(RedisTasksProducer):
         use hashmap 'userid:projectid:CANCELLED:DB_GEN' to track cancellations of jobid
             set(jobids) # use sentinel value 'SENTINEL' while instantiating the set
         """
-        modelids = list(set(modelids))
+        if not modelids:
+            modelids = []
+        else:
+            modelids = list(set(modelids))
         if not modelids:
             modelids = self.get_all_model_ids_for_type(modelType)
 
@@ -829,7 +834,7 @@ class ModelsTasksProducer(RedisTasksProducer):
         # the models are not added to the job_queue
         models_to_ignore: List[MLModel] = []
 
-        models_accepted, modelids_rejected = self.get_model_by_ids(modelids, modelType)
+        models_accepted, modelids_rejected = self.get_model_by_ids([] if not modelids else modelids, modelType)
 
         if models_accepted:
             # config data used for model building
@@ -851,7 +856,7 @@ class ModelsTasksProducer(RedisTasksProducer):
                         )
 
                         pipe_status = int(pipe_status)
-                        pipe_ok = (pipe_status == 0) or (pipe_status == 1)
+                        pipe_ok = pipe_status in (0, 1)
 
                         if pipe_status == 1:
                             job_rerun = True
@@ -863,7 +868,7 @@ class ModelsTasksProducer(RedisTasksProducer):
                                 models_status_keys = []
                                 for model in models_accepted:
                                     models_status_keys.append(f"{model.modelid}:STATUS")
-                                models_status = pipe.hmget(model_result_hashmap, *models_status_keys)
+                                models_status = pipe.hmget(model_result_hashmap, models_status_keys)
                                 models_to_build = []
                                 models_to_ignore = []
                                 for (status, model) in zip(models_status, models_accepted):
@@ -1210,8 +1215,6 @@ class ModelsTasksConsumer(RedisTasksConsumer):
                 sinkfd.write(zipped)
             return True
         except Exception as ex:
-            import traceback
-
             print(traceback.format_exc())
             print(ex)
             if os.path.isfile(file_path):
@@ -1263,8 +1266,6 @@ class ModelsTasksConsumer(RedisTasksConsumer):
             except KeyboardInterrupt:
                 break
             except Exception as error:
-                import traceback
-
                 result_dict = {}
                 model_to_pickle = {}
                 modelstatus = "ERROR"
@@ -1327,7 +1328,8 @@ class Application:
         # check if we are able to talk to redis
         assert self.redis.ping(), "Can not Ping redis server"
 
-    def digest(self, string):
+    @staticmethod
+    def digest(string):
         return hashlib.sha256(string.encode("utf-8")).hexdigest()
 
     def add_user(self, user_name, password):
@@ -1391,12 +1393,12 @@ class Application:
                 return jwt.encode(payload, jobqueue_config.jwt, algorithm="HS256")
             except Exception as ex:
                 print("Error issue_jwt => ", ex)
-                pass
         return None
 
     # check token validity by decoding it
     # if the token is valid then user is verified
-    def verify_jwt(self, encoded_jwt):
+    @staticmethod
+    def verify_jwt(encoded_jwt):
         try:
             return jwt.decode(encoded_jwt, jobqueue_config.jwt, algorithms="HS256")
         except Exception:
@@ -1485,7 +1487,8 @@ class Application:
         res = projects[0].split(sep=":")
         return res[3], datetime.datetime.utcfromtimestamp(int(res[2])).isoformat()
 
-    def timestamp_file_name(self, file_name):
+    @staticmethod
+    def timestamp_file_name(file_name):
         return f"{datetime.datetime.now().strftime('%s')}___{file_name}"
 
     def set_upload(self, user_id, file_with_timestamp):

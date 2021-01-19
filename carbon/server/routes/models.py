@@ -97,20 +97,16 @@ async def model_build(request):
         print(traceback.format_exc())
         info = ex.args[0]
         status = 500
-    finally:
-        from devtools import debug
-
-        debug(models_dict.dict())
-        return response.json(
-            {
-                "success": True if (status == 200) else False,
-                "version": "v1",
-                "info": info,
-                "data": data if (status == 200) else {},
-                "models_dict": models_dict.dict(),
-            },
-            status=status,
-        )
+    return response.json(
+        {
+            "success": True if (status == 200) else False,
+            "version": "v1",
+            "info": info,
+            "data": data if (status == 200) else {},
+            "models_dict": models_dict.dict(),
+        },
+        status=status,
+    )
 
 
 @models_bp.get("/")
@@ -128,7 +124,7 @@ async def model_results(request):
             else:
                 models_list = model_producer.get_models_list(request.ctx.userid, request.args["projectid"][0])
                 if not models_list:
-                    info = f"There are no models for this project"
+                    info = "There are no models for this project"
                     status = 400
                 else:
                     data = model_producer.get_model_data(request.ctx.userid, request.args["projectid"][0], models_list)
@@ -141,16 +137,15 @@ async def model_results(request):
         print(traceback.format_exc())
         info = ex.args[0]
         status = 500
-    finally:
-        return response.json(
-            {
-                "success": True if (status == 200) else False,
-                "version": "v1",
-                "info": info,
-                "data": data if (status == 200) else {},
-            },
-            status=status,
-        )
+    return response.json(
+        {
+            "success": True if (status == 200) else False,
+            "version": "v1",
+            "info": info,
+            "data": data if (status == 200) else {},
+        },
+        status=status,
+    )
 
 
 @models_bp.post("/")
@@ -188,16 +183,15 @@ async def get_model_result(request):
         print(traceback.format_exc())
         info = ex.args[0]
         status = 500
-    finally:
-        return response.json(
-            {
-                "success": True if (status == 200) else False,
-                "version": "v1",
-                "info": info,
-                "data": data["models"][0] if (status == 200) else {},
-            },
-            status=status,
-        )
+    return response.json(
+        {
+            "success": True if (status == 200) else False,
+            "version": "v1",
+            "info": info,
+            "data": data["models"][0] if (status == 200) else {},
+        },
+        status=status,
+    )
 
 
 @models_bp.post("/cancel")
@@ -238,22 +232,18 @@ async def cancel_model_job(request):
                 else:
                     info = "Error trying to cancel the model build"
                     status = 500
-                from devtools import debug
-
-                debug(data)
     except Exception as ex:
         import traceback
 
         print(traceback.format_exc())
         info = ex.args[0]
         status = 500
-    finally:
-        return response.json(
-            {
-                "success": True if (status == 200) else False,
-                "version": "v1",
-                "info": info,
-                "data": {},
-            },
-            status=status,
-        )
+    return response.json(
+        {
+            "success": True if (status == 200) else False,
+            "version": "v1",
+            "info": info,
+            "data": {},
+        },
+        status=status,
+    )

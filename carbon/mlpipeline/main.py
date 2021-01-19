@@ -8,11 +8,10 @@ if __name__ == "__main__":
 
     try:
         spawn_pipe_workers()
-        printBox(f"Running [[ carbon :: ML PIPELINE ]] app")
+        printBox("Running [[ carbon :: ML PIPELINE ]] app")
         join_pipe_workers()
     except KeyboardInterrupt:
         print("\n")
         printBox("Terminated ML PIPELINE workers....................................")
-        pass
     finally:
         kill_pipe_workers()

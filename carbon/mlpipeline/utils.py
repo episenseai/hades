@@ -7,7 +7,7 @@ from zipfile import ZipFile
 import matplotlib.pyplot as plt
 import pandas as pd
 import sklearn.metrics
-from pandas.api.types import is_datetime64_any_dtype, is_numeric_dtype, is_string_dtype
+from pandas.api.types import is_datetime64_any_dtype, is_numeric_dtype
 from sklearn.compose import ColumnTransformer
 from sklearn.impute import SimpleImputer
 from sklearn.metrics import (
@@ -171,15 +171,15 @@ def binCreationCategory(dfColumn):
     breaks = []
     counts = []
     i = 0
-    sum = 0
+    total_sum = 0
     for key in binDict.keys():
         i = i + 1
         if i < 10:
             counts.append(int(binDict[key]))
             breaks.append(":" + str(key))
-            sum = sum + binDict[key]
+            total_sum = total_sum + binDict[key]
         elif i == 10:
-            counts.append(int(totalSum1 - sum))
+            counts.append(int(totalSum1 - total_sum))
             breaks.append("Other bins")
         else:
             break
@@ -381,9 +381,9 @@ def rocCurveforClassPredictProba(X_train, X_test, Y_train, Y_test, catClasses, c
     Y_pred = clf_fit.predict(X_test)
     Y_score = clf_fit.predict_proba(X_test)
 
-    fpr = dict()
-    tpr = dict()
-    roc_auc = dict()
+    fpr = {}
+    tpr = {}
+    roc_auc = {}
     # print(Y_test.shape, Y_score.shape)
     for i in range(catClasses.shape[0]):
         if catClasses.shape[0] > 2:
@@ -404,9 +404,9 @@ def rocCurveforClassDecisionFunction(X_train, X_test, Y_train, Y_test, catClasse
     Y_pred = clf_fit.predict(X_test)
     Y_score = clf_fit.decision_function(X_test)
 
-    fpr = dict()
-    tpr = dict()
-    roc_auc = dict()
+    fpr = {}
+    tpr = {}
+    roc_auc = {}
     # print(Y_test.shape, Y_score.shape)
     for i in range(catClasses.shape[0]):
         if catClasses.shape[0] > 2:

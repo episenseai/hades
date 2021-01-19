@@ -107,7 +107,7 @@ async def authorization(request):
 
 # This is run before the server starts accepting connections
 @app.listener("before_server_start")
-async def beforeStart(app, loop):
+async def beforeStart(_app, _loop):
     try:
         os.mkdir(f"{server_config.jobs.uploads_folder}")
     except FileExistsError:
@@ -120,13 +120,13 @@ async def beforeStart(app, loop):
 
 # This is run after the server has successfully started
 @app.listener("after_server_start")
-async def notify_server_started(app, loop):
+async def notify_server_started(_app, _loop):
     printBox(f"Running [[ carbon :: SERVER ]] app (ENV = {server_config.app.env})")
 
 
 # This is run before the server starts shuttings down
 @app.listener("before_server_stop")
-async def notify_server_stopping(app, loop):
+async def notify_server_stopping(_app, _loop):
     printBox("Shutting down server....................................")
 
 
@@ -137,7 +137,7 @@ async def notify_server_stopping(app, loop):
 
 
 @app.exception(NotFound)
-async def ignore_404s(request, exception):
+async def ignore_404s(request, _exception):
     return response.json(
         {
             "success": False,

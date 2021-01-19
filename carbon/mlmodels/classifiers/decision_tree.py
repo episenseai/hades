@@ -1,7 +1,3 @@
-from pprint import pprint
-from random import sample
-import json
-
 from sklearn.metrics import auc, confusion_matrix, roc_curve
 from sklearn.model_selection import GridSearchCV, train_test_split
 from sklearn.multiclass import OneVsRestClassifier
@@ -9,6 +5,7 @@ from sklearn.preprocessing import label_binarize
 from sklearn.tree import DecisionTreeClassifier
 
 from carbon.mlmodels.utils import (
+    convert_cvresults_tolist,
     deliverformattedResultClf,
     deliverRoCResult,
     finalFeatureListGenerator,
@@ -17,7 +14,6 @@ from carbon.mlmodels.utils import (
     loadData,
     metricResultMultiClassifier,
     splitTrainTestdataset,
-    convert_cvresults_tolist,
 )
 
 # from pprint import pprint
@@ -85,9 +81,9 @@ def rocCurveforMultiClassDecisionTree(X, Y, catClasses, clfObject):
     Y_pred_ovr = clf_ovr_fit.predict(X_test_ovr)
     Y_score_ovr = clf_ovr_fit.predict_proba(X_test_ovr)
 
-    fpr = dict()
-    tpr = dict()
-    roc_auc = dict()
+    fpr = {}
+    tpr = {}
+    roc_auc = {}
     # print(Y_test_ovr.shape, Y_score_ovr.shape)
     for i in range(catClasses.shape[0]):
         if catClasses.shape[0] > 2:

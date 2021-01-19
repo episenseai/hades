@@ -3,6 +3,7 @@ from sklearn.metrics import confusion_matrix
 from sklearn.model_selection import GridSearchCV
 
 from carbon.mlmodels.utils import (
+    convert_cvresults_tolist,
     deliverformattedResultClf,
     deliverRoCResult,
     finalFeatureListGenerator,
@@ -12,7 +13,6 @@ from carbon.mlmodels.utils import (
     metricResultMultiClassifier,
     rocCurveforClassPredictProba,
     splitTrainTestdataset,
-    convert_cvresults_tolist,
 )
 
 # from pprint import pprint

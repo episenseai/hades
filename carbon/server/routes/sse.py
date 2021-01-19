@@ -26,10 +26,9 @@ async def sse(request):
                 data = pipe_producer.current_pipe_state(userid, projectid)
                 if data is None:
                     raise CancelledError("could not get current pipe state")
-                else:
-                    data["id"] = projectid
-                    data["name"] = proj[0]
-                    data["timestamp"] = proj[1]
+                data["id"] = projectid
+                data["name"] = proj[0]
+                data["timestamp"] = proj[1]
                 data = pipe_producer.to_JSON(data)
                 data = base64.b64encode(data.encode()).decode()
                 s = "data: " + str(data) + "\r\n\r\n"
@@ -59,7 +58,7 @@ async def sse(request):
 async def sse_models(request):
     userid = request.args["userid"][0]
     projectid = request.args["projectid"][0]
-    proj = request.ctx.proj
+    # proj = request.ctx.proj
 
     async def sample_streaming_fn(response):
         try:
@@ -98,6 +97,7 @@ one_shot_tokens = set()
 
 @sse_bp.get("/token")
 async def sse_token(request):
+    data = {}
     try:
         if "userid" not in request.args or "projectid" not in request.args:
             info = "Bad request for getting SSE tokens. missing parameters"
@@ -116,16 +116,15 @@ async def sse_token(request):
     except Exception as ex:
         info = ex.args[0]
         status = 500
-    finally:
-        return response.json(
-            {
-                "success": True if (status == 200) else False,
-                "version": "v1",
-                "info": info,
-                "data": data if (status == 200) else {},
-            },
-            status=status,
-        )
+    return response.json(
+        {
+            "success": True if (status == 200) else False,
+            "version": "v1",
+            "info": info,
+            "data": data if (status == 200) else {},
+        },
+        status=status,
+    )
 
 
 def check_sse_token(request):

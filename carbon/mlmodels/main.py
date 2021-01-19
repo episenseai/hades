@@ -8,11 +8,10 @@ if __name__ == "__main__":
 
     try:
         spawn_model_workers()
-        printBox(f"Running [[ carbon :: ML MODELS ]] app")
+        printBox("Running [[ carbon :: ML MODELS ]] app")
         join_model_workers()
     except KeyboardInterrupt:
         print("\n")
         printBox("Terminated ML MODELS workers....................................")
-        pass
     finally:
         kill_model_workers()

@@ -24,8 +24,7 @@ class WorkersConfig(BaseModel):
         for item in values.get('worker_names'):
             if item in items:
                 raise ValueError(f"Duplicate worker name => {item} in '{config_path}'")
-            else:
-                items.append(item)
+            items.append(item)
         return values
 
     @root_validator(pre=False, skip_on_failure=True)

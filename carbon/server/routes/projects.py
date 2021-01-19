@@ -27,20 +27,20 @@ async def create_project(request):
     except Exception as ex:
         info = ex.args[0]
         status = 500
-    finally:
-        return response.json(
-            {
-                "success": True if (status == 200) else False,
-                "version": "v1",
-                "info": info,
-                "data": {},
-            },
-            status=status,
-        )
+    return response.json(
+        {
+            "success": True if (status == 200) else False,
+            "version": "v1",
+            "info": info,
+            "data": {},
+        },
+        status=status,
+    )
 
 
 @projects_bp.get("/")
 async def list_projects(request):
+    data = {}
     try:
         if "userid" not in request.args:
             info = "Bad request. missing parameters"
@@ -55,20 +55,20 @@ async def list_projects(request):
         # import traceback
 
         # print(traceback.format_exc())
-    finally:
-        return response.json(
-            {
-                "success": True if (status == 200) else False,
-                "version": "v1",
-                "info": info,
-                "data": data if (status == 200) else {},
-            },
-            status=status,
-        )
+    return response.json(
+        {
+            "success": True if (status == 200) else False,
+            "version": "v1",
+            "info": info,
+            "data": data if (status == 200) else {},
+        },
+        status=status,
+    )
 
 
 @projects_bp.post("/current")
 async def set_project(request):
+    data = {}
     try:
         if "userid" not in request.args or "projectid" not in request.args:
             info = "Bad request. missing parameters"
@@ -99,14 +99,13 @@ async def set_project(request):
         # import traceback
 
         # print(traceback.format_exc())
-    finally:
         # print(data)
-        return response.json(
-            {
-                "success": True if (status == 200) else False,
-                "version": "v1",
-                "info": info,
-                "data": data if (status == 200) else {},
-            },
-            status=status,
-        )
+    return response.json(
+        {
+            "success": True if (status == 200) else False,
+            "version": "v1",
+            "info": info,
+            "data": data if (status == 200) else {},
+        },
+        status=status,
+    )

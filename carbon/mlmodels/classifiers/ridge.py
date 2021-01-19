@@ -6,6 +6,7 @@ from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import StandardScaler
 
 from carbon.mlmodels.utils import (
+    convert_cvresults_tolist,
     deliverformattedResultClf,
     deliverRoCResult,
     finalFeatureListGenerator,
@@ -15,7 +16,6 @@ from carbon.mlmodels.utils import (
     metricResultMultiClassifier,
     rocCurveforClassDecisionFunction,
     splitTrainTestdataset,
-    convert_cvresults_tolist,
 )
 
 # from pprint import pprint

@@ -34,21 +34,18 @@ async def signup(request):
     except Exception as ex:
         info = ex.args[0]
         status = 500
-    finally:
-        return response.json(
-            {
-                "success": True if (status == 201) else False,
-                "version": "v1",
-                "info": info,
-                "data": {},
-            },
-            status=status,
-        )
+    return response.json(
+        {
+            "success": True if (status == 201) else False,
+            "version": "v1",
+            "info": info,
+            "data": {},
+        },
+        status=status,
+    )
 
 
 def one_shot_upload(folder_name, file_name, content):
-    import pathlib
-
     sink = f"{server_config.jobs.uploads_folder}/{folder_name}/{file_name}"
     # print("source ", sink)
     try:
@@ -59,7 +56,7 @@ def one_shot_upload(folder_name, file_name, content):
 
         with open(sink, mode="wb") as sinkfd:
             sinkfd.write(content)
-    except Exception as ex:
+    except Exception:
         # print(ex)
         if os.path.isfile(sink):
             os.remove(sink)
@@ -68,6 +65,7 @@ def one_shot_upload(folder_name, file_name, content):
 
 @uploads_bp.get("/")
 async def list_uploads(request):
+    data = {}
     try:
         if "userid" not in request.args:
             info = "Bad request. missing parameters"
@@ -82,13 +80,12 @@ async def list_uploads(request):
         # import traceback
 
         # print(traceback.format_exc())
-    finally:
-        return response.json(
-            {
-                "success": True if (status == 200) else False,
-                "version": "v1",
-                "info": info,
-                "data": data if (status == 200) else {},
-            },
-            status=status,
-        )
+    return response.json(
+        {
+            "success": True if (status == 200) else False,
+            "version": "v1",
+            "info": info,
+            "data": data if (status == 200) else {},
+        },
+        status=status,
+    )

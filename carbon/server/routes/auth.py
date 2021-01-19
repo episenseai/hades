@@ -8,6 +8,7 @@ auth_bp = Blueprint("authentication_service", url_prefix="/auth")
 # route: /auth/signup
 @auth_bp.post("/signup")
 async def signup(request):
+    userid = None
     try:
         if "username" not in request.json or "password" not in request.json:
             info = "Bad request. missing parameters"
@@ -22,21 +23,21 @@ async def signup(request):
     except Exception as ex:
         info = ex.args[0]
         status = 500
-    finally:
-        return response.json(
-            {
-                "success": True if (status == 200 and userid is not None) else False,
-                "version": "v1",
-                "info": info,
-                "data": {},
-            },
-            status=status,
-        )
+    return response.json(
+        {
+            "success": True if (status == 200 and userid is not None) else False,
+            "version": "v1",
+            "info": info,
+            "data": {},
+        },
+        status=status,
+    )
 
 
 # route: /auth/login
 @auth_bp.post("/login")
 async def login(request):
+    jwt = None
     try:
         if "username" not in request.json or "password" not in request.json:
             info = "Bad request. missing parameters"
@@ -51,21 +52,20 @@ async def login(request):
     except Exception as ex:
         info = ex.args[0]
         status = 500
-    finally:
-        return response.json(
-            {
-                "success": True if (status == 200 and jwt is not None) else False,
-                "version": "v1",
-                "info": info,
-                "data": {"jwt": jwt} if (status == 200 and jwt is not None) else {},
-            },
-            status=status,
-        )
+    return response.json(
+        {
+            "success": True if (status == 200 and jwt is not None) else False,
+            "version": "v1",
+            "info": info,
+            "data": {"jwt": jwt} if (status == 200 and jwt is not None) else {},
+        },
+        status=status,
+    )
 
 
 # route: /auth/logout
 @auth_bp.post("/logout")
-async def logout(request):
+async def logout(_request):
     # currently does nothing
     return response.json(
         {

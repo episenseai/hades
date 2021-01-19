@@ -5,6 +5,7 @@ from sklearn.pipeline import Pipeline
 from sklearn.tree import DecisionTreeRegressor
 
 from carbon.mlmodels.utils import (
+    convert_cvresults_tolist,
     deliverformattedResult,
     finalFeatureListGenerator,
     finaltypeOfColumnUserUpdated,
@@ -12,7 +13,6 @@ from carbon.mlmodels.utils import (
     loadData,
     metricResultRegressor,
     splitTrainTestdataset,
-    convert_cvresults_tolist,
 )
 
 # from Models.config import config1, config2, config3

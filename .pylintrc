@@ -158,7 +158,11 @@ disable=print-statement,
         len-as-condition,
         raw-checker-failed,
         E0611,
-        W0703
+        W0703,
+        # issues with python 3.9 (temporarily disabled)
+        no-self-argument,
+        unsubscriptable-object,
+        no-self-use
         # W0613,W0511,W0212,W0201,W0311,W0106,W0603,W0621,W0703,E1136
 
 
@@ -353,7 +357,7 @@ dummy-variables-rgx=_+$|(_[a-zA-Z0-9_]*[a-zA-Z0-9]+?$)|dummy|^ignored_|^unused_
 
 # Argument names that match this expression will be ignored. Default to name
 # with leading underscore.
-ignored-argument-names=_.*|^ignored_|^unused_
+ignored-argument-names=_.*|^ignored_|^unused_|^_.*
 
 # Tells whether we should check for unused import in __init__ files.
 init-import=no

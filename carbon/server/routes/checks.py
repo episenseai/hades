@@ -5,7 +5,7 @@ checks_bp = Blueprint("checks_service", url_prefix="/checks")
 
 # route: /checks/health
 @checks_bp.get("/health")
-async def health(request):
+async def health(_request):
     return response.json(
         {
             "success": 200,

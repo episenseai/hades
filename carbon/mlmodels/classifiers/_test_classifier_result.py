@@ -1,24 +1,6 @@
-import os.path
-import pickle
-from datetime import datetime
-from itertools import cycle
-from pathlib import Path
-from pprint import pprint
-
-import matplotlib.pyplot as plt
-import numpy as np
 import pandas as pd
-import sklearn.metrics
-from epi import Conf
-from joblib import dump, load
-from process.build import featureListGenerator
-from process.prepare import typeOfColumn1
-from sklearn import svm
-from sklearn.metrics import SCORERS, accuracy_score, auc, classification_report, confusion_matrix, log_loss, roc_curve
-from sklearn.model_selection import GridSearchCV, KFold, cross_val_score, cross_validate, train_test_split
-from sklearn.multiclass import OneVsRestClassifier
-from sklearn.preprocessing import LabelEncoder, OneHotEncoder, label_binarize
-from sklearn.tree import DecisionTreeClassifier, plot_tree
+
+from ..utils import featureListGenerator
 
 featureSet1 = list(
     featureListGenerator(pd.read_csv("/Users/rajeevranjan/Downloads/pipenv-episense/data/lending_club_loans.csv"))
@@ -69,21 +51,3 @@ config3 = {
     "Stratified": True,
     "nCVFolds": 6,
 }
-
-
-def classifierModelFinalResult(config):
-    returnResult = {
-        "page": "models",
-        "modelType": config["modelType"],  # or 'regressor' 'multi_classfier'
-        "classes": list(catClasses),
-        "models": [
-            {
-                "id": "112233",
-                "metrics": {config["optimization_metric"]: metricResult[config["optimization_metric"]]},
-                "status": 0,
-                # confusion matrix: [[TP, FP], [FN, TN]]
-                "cm": confusion.tolist(),
-                "roc": roc,
-            }
-        ],
-    }

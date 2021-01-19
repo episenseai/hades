@@ -7,6 +7,7 @@ pipe_bp = Blueprint("pipe_service", url_prefix="/tab/v1/pipe")
 
 @pipe_bp.post("/next")
 async def next_stage(request):
+    data = {}
     try:
         if "userid" not in request.args and "projectid" not in request.args:
             info = "Bad request. missing parameters"
@@ -38,7 +39,7 @@ async def next_stage(request):
                 if res:
                     data = pipe_producer.current_pipe_state(request.ctx.userid, request.args["projectid"][0])
                     if data is None:
-                        info = f"submitted the job but something happened while getting current pipe status"
+                        info = "submitted the job but something happened while getting current pipe status"
                         status = 500
                     else:
                         data["id"] = request.args["projectid"][0]
@@ -52,20 +53,20 @@ async def next_stage(request):
     except Exception as ex:
         info = ex.args[0]
         status = 500
-    finally:
-        return response.json(
-            {
-                "success": True if (status == 200) else False,
-                "version": "v1",
-                "info": info,
-                "data": data if (status == 200) else {},
-            },
-            status=status,
-        )
+    return response.json(
+        {
+            "success": True if (status == 200) else False,
+            "version": "v1",
+            "info": info,
+            "data": data if (status == 200) else {},
+        },
+        status=status,
+    )
 
 
 @pipe_bp.post("/current")
 async def stage_data(request):
+    data = {}
     try:
         if "userid" not in request.args and "projectid" not in request.args:
             info = "Bad request. missing parameters"
@@ -74,7 +75,7 @@ async def stage_data(request):
             info = f"Projectid {request.args['projectid'][0]} not associated with the user"
             status = 400
         elif "current_stage" not in request.json:
-            info = f"Bad request. missing current_stage value."
+            info = "Bad request. missing current_stage value."
             status = 400
         elif request.json["current_stage"] not in seq:
             info = "Bad request. current_stage value is not a valid stage."
@@ -95,16 +96,15 @@ async def stage_data(request):
     except Exception as ex:
         info = ex.args[0]
         status = 500
-    finally:
-        return response.json(
-            {
-                "success": True if (status == 200) else False,
-                "version": "v1",
-                "info": info,
-                "data": data if (status == 200) else {},
-            },
-            status=status,
-        )
+    return response.json(
+        {
+            "success": True if (status == 200) else False,
+            "version": "v1",
+            "info": info,
+            "data": data if (status == 200) else {},
+        },
+        status=status,
+    )
 
 
 seq = [
@@ -122,6 +122,7 @@ seq = [
 
 @pipe_bp.post("/revert")
 async def revert_stage(request):
+    data = {}
     try:
         if "userid" not in request.args and "projectid" not in request.args:
             info = "Bad request. missing parameters"
@@ -154,7 +155,7 @@ async def revert_stage(request):
                 if res:
                     data = pipe_producer.current_pipe_state(request.ctx.userid, request.args["projectid"][0])
                     if data is None:
-                        info = f"successfully reverted to a previous stage but somehting fatal happened while getting current pipe state"
+                        info = "successfully reverted to a previous stage but somehting fatal happened while getting current pipe state"
                         status = 500
                     else:
                         data["id"] = request.args["projectid"][0]
@@ -172,20 +173,20 @@ async def revert_stage(request):
         # print(traceback.format_exc())
         info = ex.args[0]
         status = 500
-    finally:
-        return response.json(
-            {
-                "success": True if (status == 200) else False,
-                "version": "v1",
-                "info": info,
-                "data": data if (status == 200) else {},
-            },
-            status=status,
-        )
+    return response.json(
+        {
+            "success": True if (status == 200) else False,
+            "version": "v1",
+            "info": info,
+            "data": data if (status == 200) else {},
+        },
+        status=status,
+    )
 
 
 @pipe_bp.post("/unfreeze")
 async def unfreeze_pipe(request):
+    data = {}
     try:
         if "userid" not in request.args and "projectid" not in request.args:
             info = "Bad request. missing parameters"
@@ -199,7 +200,9 @@ async def unfreeze_pipe(request):
             elif pipe_producer.unfreeze_pipe(request.ctx.userid, request.args["projectid"][0]):
                 data = pipe_producer.current_pipe_state(request.ctx.userid, request.args["projectid"][0])
                 if data is None:
-                    info = f"successfully unfreezed the pipe but something fatal happened while getting  current pipe state"
+                    info = (
+                        "successfully unfreezed the pipe but something fatal happened while getting  current pipe state"
+                    )
                     status = 500
                 else:
                     data["id"] = request.args["projectid"][0]
@@ -218,13 +221,12 @@ async def unfreeze_pipe(request):
         # import traceback
 
         # print(traceback.format_exc())
-    finally:
-        return response.json(
-            {
-                "success": True if (status == 200) else False,
-                "version": "v1",
-                "info": info,
-                "data": data if (status == 200) else {},
-            },
-            status=status,
-        )
+    return response.json(
+        {
+            "success": True if (status == 200) else False,
+            "version": "v1",
+            "info": info,
+            "data": data if (status == 200) else {},
+        },
+        status=status,
+    )
