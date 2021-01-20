@@ -99,7 +99,7 @@ def csvFileSelector(config):
                     csv_files = csv_files + csv_file.filename
         # print("file:  ", csv_files)
         df = pd.read_csv(zip_file.open(csv_files))
-    except UnicodeDecodeError as ex:
+    except UnicodeDecodeError:
         # print(ex)
         with tempfile.TemporaryDirectory() as tmpdirname:
             # print("created temporary directory: ", tmpdirname)
@@ -138,7 +138,7 @@ def finalCsvFileSelector(finalConfig):
                     csv_files = csv_files + csv_file.filename
         # print("file:  ", csv_files)
         df = pd.read_csv(zip_file.open(csv_files))
-    except UnicodeDecodeError as ex:
+    except UnicodeDecodeError:
         # print(ex)
         with tempfile.TemporaryDirectory(dir=mlpipeline_config.jobs.temp_folder) as tmpdirname:
             # print("created temporary directory: ", tmpdirname)
@@ -249,7 +249,7 @@ def correlate(dfColumn, dfTargetColumn):
 
 
 def featureListGenerator(config):
-    df = csvFileSelector(config)
+    csvFileSelector(config)
     featureList = []
     featuresPropertyList = config["transform:POST"]["data"]["features"]
     for element in featuresPropertyList:
@@ -259,7 +259,7 @@ def featureListGenerator(config):
 
 
 def finalFeatureListGenerator(finalConfig):
-    df = finalCsvFileSelector(finalConfig)
+    finalCsvFileSelector(finalConfig)
     featureList = []
     columnPropertyList = finalConfig["data"]["cols"]
     for element in columnPropertyList:
@@ -350,7 +350,7 @@ def plotRoCCurve(catClasses, fpr, tpr, auRoC):
 
 
 def deliverRoCResult(catClasses, fpr, tpr, roc_auc):
-    n_classes = catClasses.shape[0]
+    catClasses.shape[0]
     roc = []
     for key, classes in zip(fpr, catClasses):
         roc.append(
@@ -474,7 +474,7 @@ def metricResultMultiClassifier(Y_test, Y_pred, Y_score):
 
     try:
         f1_score = sklearn.metrics.f1_score(Y_test, Y_pred)
-    except Exception as ex:
+    except Exception:
         f1_score = None
 
     try:
@@ -494,7 +494,7 @@ def metricResultMultiClassifier(Y_test, Y_pred, Y_score):
 
     try:
         roc_auc_score = sklearn.metrics.roc_auc_score(Y_test, Y_score)
-    except Exception as ex:
+    except Exception:
         roc_auc_score = None
 
     metricResult = {

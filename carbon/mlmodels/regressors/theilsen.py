@@ -19,9 +19,8 @@ from carbon.mlmodels.utils import (
 
 
 def build(confign):
-    modelName = "K Neighbors Regressor"
     config = confign["data"]
-    finalFeatureSet = finalFeatureListGenerator(config)
+    finalFeatureListGenerator(config)
     columnType = finaltypeOfColumnUserUpdated(config)
     df, X, Y = loadData(config)
     # Encode the feature values from strings to numerical values

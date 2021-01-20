@@ -23,7 +23,7 @@ from .confgin import finalconfig1
 
 def build(confign, model_config=None):
     config = confign["data"]
-    finalFeatureSet = finalFeatureListGenerator(config)
+    finalFeatureListGenerator(config)
     columnType = finaltypeOfColumnUserUpdated(config)
     df, X, Y = loadData(config)
     Y = Y.astype(str)

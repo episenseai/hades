@@ -27,7 +27,7 @@ from carbon.mlmodels.utils import (
 
 def build(confign):
     config = confign["data"]
-    finalFeatureSet = finalFeatureListGenerator(config)
+    finalFeatureListGenerator(config)
     columnType = finaltypeOfColumnUserUpdated(config)
     df, X, Y = loadData(config)
     Y = Y.astype(str)

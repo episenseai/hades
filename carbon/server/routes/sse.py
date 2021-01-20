@@ -38,7 +38,7 @@ async def sse(request):
                 # print(data)
                 await response.write(s.encode())
                 # i += 1
-        except CancelledError as ex:
+        except CancelledError:
             pass
             # import traceback
 

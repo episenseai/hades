@@ -53,9 +53,6 @@ async def model_build(request):
                         res, models_dict = model_producer.submit_model_jobs(
                             request.ctx.userid, request.args["projectid"][0], optimizeUsing, model_type, modelids
                         )
-                        from devtools import debug
-
-                        debug(res, models_dict)
                         # no model job was queued
                         if not res:
                             status = 400
