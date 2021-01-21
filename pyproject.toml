@@ -2,7 +2,7 @@
 name = "carbon"
 version = "3.0"
 description = "backend app"
-authors = ["Sushant Kumar <sushant.mithila@gmail.com>"]
+authors = ["Sushant Kumar <sushant.mithila@gmail.com>", "Rajeev Ranjan <ranjanrajee@gmail.com>"]
 license = "LICENSE"
 readme = "README.md"
 
