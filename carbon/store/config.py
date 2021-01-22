@@ -3,9 +3,9 @@ from typing import List, Optional
 
 from pydantic import BaseModel
 
-regressors_path = Path('configs/store/regressor_models.json')
-classifiers_path = Path('configs/store/classifier_models.json')
-multi_classifiers_path = Path('configs/store/multi_classifier_models.json')
+regressors_path = Path("configs/store/regressor_models.json")
+classifiers_path = Path("configs/store/classifier_models.json")
+multi_classifiers_path = Path("configs/store/multi_classifier_models.json")
 
 
 class MLModel(BaseModel):

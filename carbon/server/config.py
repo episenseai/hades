@@ -3,7 +3,7 @@ from typing import List
 
 from pydantic import BaseModel
 
-config_path = Path('configs/server.json')
+config_path = Path("configs/server.json")
 
 
 class RedisConfig(BaseModel):
