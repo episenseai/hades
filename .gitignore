@@ -23,7 +23,6 @@ env
 venv
 .idea
 a.out
-.vscode
 .tags
 .tox
 .nox
