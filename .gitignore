@@ -1,6 +1,9 @@
 notebooks
 build_models
 file_uploads
+.vscode
+.code-workspace
+.vim
 
 pyrightconfig.json
 .ipynb_checkpoints
@@ -21,7 +24,6 @@ venv
 .idea
 a.out
 .vscode
-.vim
 .tags
 .tox
 .nox
