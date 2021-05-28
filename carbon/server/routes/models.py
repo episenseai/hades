@@ -48,10 +48,20 @@ async def model_build(request):
                             modelids = []
                         else:
                             modelids = request.json["modelids"]
+                        if "changed_hparams" not in request.json:
+                            changed_hparams = {}
+                        else:
+                            changed_hparams = request.json["changed_hparams"]
+                        print(f"{changed_hparams=}***********")
                         print(f"{modelids=}***********")
 
                         res, models_dict = model_producer.submit_model_jobs(
-                            request.ctx.userid, request.args["projectid"][0], optimizeUsing, model_type, modelids
+                            request.ctx.userid,
+                            request.args["projectid"][0],
+                            optimizeUsing,
+                            model_type,
+                            modelids,
+                            changed_hparams,
                         )
                         # no model job was queued
                         if not res:

@@ -15,6 +15,7 @@ from typing import Any, List, Optional, Tuple
 import jwt
 import redis
 from pydantic import BaseModel
+from pprint import pprint
 
 from ..config import MLModel, classifiers, jobqueue_config, multi_classifiers, regressors
 
@@ -765,7 +766,8 @@ class ModelsTasksProducer(RedisTasksProducer):
             local jobid =  redis.call('xadd', KEYS[1], '*', KEYS[2], KEYS[3], KEYS[4], KEYS[5], KEYS[6], KEYS[7], KEYS[8], KEYS[9], KEYS[10], KEYS[11], KEYS[12], KEYS[13], KEYS[14], KEYS[15], KEYS[16], KEYS[17])
             local res1 = redis.call('hset', KEYS[15], KEYS[18], jobid)
             local res2 = redis.call('hset', KEYS[17], jobid, 0)
-            return {jobid, res1, res2}
+            local res3 = redis.call('hset', KEYS[11], KEYS[19], KEYS[20])
+            return {jobid, res1, res2, res3}
         """
         self.modeljob_add = self.redis.register_script(lua_modeljob_submit.strip())
 
@@ -795,7 +797,7 @@ class ModelsTasksProducer(RedisTasksProducer):
         return (models_to_build, modelids_to_reject)
 
     def submit_model_jobs(
-        self, user_id, project_id, optimizeUsing, modelType, modelids: Optional[List[str]] = None
+        self, user_id, project_id, optimizeUsing, modelType, modelids: Optional[List[str]] = None, changed_hparams=None
     ):  # pylint: disable=unsubscriptable-object
         """
         modelType: one of ["regressor", "classifier", "multi_classifier"]
@@ -817,6 +819,9 @@ class ModelsTasksProducer(RedisTasksProducer):
             modelids = list(set(modelids))
         if not modelids:
             modelids = self.get_all_model_ids_for_type(modelType)
+
+        if not changed_hparams:
+            changed_hparams = {}
 
         class ModelJobs(BaseModel):
             models_accepted: List[str]
@@ -887,28 +892,31 @@ class ModelsTasksProducer(RedisTasksProducer):
                             # a single transaction
                             pipe.multi()
                             mss = {}
-                            for model in models_to_build:
+                            for i, model in enumerate(models_to_build):
+                                print(changed_hparams)
                                 self.modeljob_add(
                                     client=pipe,
                                     keys=[
-                                        self.jobq,
-                                        "modelid",
-                                        model.modelid,
-                                        "modelname",
-                                        model.modelname,
-                                        "filename",
-                                        model.filename,
-                                        "model_type",
-                                        modelType,
-                                        "pipe_result_hashmap",
-                                        pipe_result_hashmap,
-                                        "field_name",
-                                        "finalconfig:GET",
-                                        "model_result_hashmap",
-                                        model_result_hashmap,
-                                        "cancelled_hashmap",
-                                        cancelled_hashmap,
-                                        f"{model.modelid}:JOBID",
+                                        self.jobq,  # 1
+                                        "modelid",  # 2
+                                        model.modelid,  # 3
+                                        "modelname",  # 4
+                                        model.modelname,  # 5
+                                        "filename",  # 6
+                                        model.filename,  # 7
+                                        "model_type",  # 8
+                                        modelType,  # 9
+                                        "pipe_result_hashmap",  # 10
+                                        pipe_result_hashmap,  # 11
+                                        "field_name",  # 12
+                                        "finalconfig:GET",  # 13
+                                        "model_result_hashmap",  # 14
+                                        model_result_hashmap,  # 15
+                                        "cancelled_hashmap",  # 16
+                                        cancelled_hashmap,  # 17
+                                        f"{model.modelid}:JOBID",  # 18
+                                        f"{model.modelid}:HYPERPARAMS",  # 19
+                                        self.to_JSON(changed_hparams[model.modelid]),  # 20
                                     ],
                                 )
                                 if not job_rerun:
@@ -1101,6 +1109,7 @@ class ModelsTasksConsumer(RedisTasksConsumer):
                             )
                             pipe.hset(model_result_hashmap, f"{modelid}:STATUS", "RUNNING")
                             ret = pipe.execute()
+                            print("************Result********:", self._item)
                             res = ret[0]
                             result = {
                                 "jobid": self.jobid,
@@ -1110,6 +1119,7 @@ class ModelsTasksConsumer(RedisTasksConsumer):
                                 "model_result_hashmap": self._item[1]["model_result_hashmap"],
                                 "data": self.from_JSON(res),
                             }
+                            # print("************Result********:", result)
                         break
                     except redis.WatchError:
                         if watch_error_count > 100:
