@@ -1108,16 +1108,20 @@ class ModelsTasksConsumer(RedisTasksConsumer):
                                 self._item[1]["field_name"],
                             )
                             pipe.hset(model_result_hashmap, f"{modelid}:STATUS", "RUNNING")
+                            pipe.hget(
+                                self._item[1]["pipe_result_hashmap"],
+                                f"{self._item[1]['modelid']}:HYPERPARAMS",
+                            )
                             ret = pipe.execute()
                             print("************Result********:", self._item)
-                            res = ret[0]
                             result = {
                                 "jobid": self.jobid,
                                 "modelid": self._item[1]["modelid"],
                                 "modelname": self._item[1]["modelname"],
                                 "model_type": self._item[1]["model_type"],
                                 "model_result_hashmap": self._item[1]["model_result_hashmap"],
-                                "data": self.from_JSON(res),
+                                "data": self.from_JSON(ret[0]),
+                                "hyper_params": self.from_JSON(ret[2]),
                             }
                             # print("************Result********:", result)
                         break
@@ -1252,6 +1256,7 @@ class ModelsTasksConsumer(RedisTasksConsumer):
                     "modelname": job["modelname"],
                     "model_type": job["model_type"],
                     "data": job["data"],
+                    "hyper_params": job["hyper_params"],
                 }
                 cancelled_hashmap = cancelled_hashmap = self._item[1]["cancelled_hashmap"]
                 # (result_dict, model_to_pickle) = self.model_func_dict[job["modelid"]](config)
