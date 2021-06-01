@@ -30,7 +30,7 @@ async def sse(request):
                 data["name"] = proj[0]
                 data["timestamp"] = proj[1]
                 data = pipe_producer.to_JSON(data)
-                data = base64.b64encode(data.encode()).decode()
+                data = base64.b64encode(data).decode()
                 s = "data: " + str(data) + "\r\n\r\n"
                 # print(s)
                 # s = "data: " + str(i) + "hello sse" + "\r\n\r\n"
@@ -75,7 +75,9 @@ async def sse_models(request):
                 # s = "data: " + str(i) + "hello sse" + "\r\n\r\n"
                 # print(s.encode())
                 # print(data)
+                print("===================")
                 await response.write(s.encode())
+                print("===================")
                 # i += 1
         except CancelledError as ex:
             pass
