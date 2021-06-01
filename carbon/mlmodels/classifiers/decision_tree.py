@@ -23,7 +23,7 @@ from devtools import debug
 
 
 def build(confign):
-    debug(confign)
+    # debug(confign)
     config = confign["data"]
     model_config = confign["hyper_params"]
     finalFeatureListGenerator(config)
@@ -101,7 +101,7 @@ def rocCurveforMultiClassDecisionTree(X, Y, catClasses, clfObject):
 
 
 def gridSearchDecisionTreeClf(X, Y, config, model_config=None):
-    debug(model_config)
+    # debug(model_config)
     if not model_config:
         gsClf = GridSearchCV(
             DecisionTreeClassifier(criterion="gini", random_state=100),
