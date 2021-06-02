@@ -373,6 +373,7 @@ def deliverformattedResultClf(config, catClasses, metricResult, confusion, roc, 
             "cm": confusion.tolist(),
             "roc": roc,
             "grid_results": grid_results,
+            "hp_results": config["hpresults"],
         }
     else:
         returnResult = {

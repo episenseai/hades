@@ -43,6 +43,16 @@ def build(confign):
 
     clf_gini, clf_gini_fit, clf_results = gridSearchDecisionTreeClf(X_train, Y_train, config, model_config)
     # print("end", datetime.now())
+    debug(model_config)
+    if "hpresults" not in config.keys():
+        config["hpresults"] = []
+    hp_result = {
+        "modelid": "6bb167c7-fd88-4fc1-8cc9-5005b463a6b4",
+        "hparams": model_config,
+        "result": clf_results,
+    }
+    config["hpresults"].append(hp_result)
+    debug(config["hpresults"])
 
     # Model Evaluation
     Y_gini_pred = clf_gini_fit.predict(X_test)
