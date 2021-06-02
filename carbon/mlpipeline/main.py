@@ -1,17 +1,11 @@
 from .app import join_pipe_workers, kill_pipe_workers, spawn_pipe_workers
-from .utils import printBox
 
 if __name__ == "__main__":
-    import warnings
-
-    warnings.filterwarnings("ignore")
-
     try:
         spawn_pipe_workers()
-        printBox("Running [[ carbon :: ML PIPELINE ]] app")
+        print("============ STARTING (MLPIPELINE) ============")
         join_pipe_workers()
     except KeyboardInterrupt:
-        print("\n")
-        printBox("Terminated ML PIPELINE workers....................................")
+        pass
     finally:
         kill_pipe_workers()

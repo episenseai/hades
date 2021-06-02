@@ -51,6 +51,4 @@ def kill_pipe_workers():
     for i, p in enumerate(ps):
         p.kill()
         p.join()
-        print(
-            f"─────────shutdown pipe worker = {allowed_pipe_workers[i]} pid = {p.pid} exitcode = {p.exitcode} is_alive = {p.is_alive()}"
-        )
+    print("============ KILLED PIPELINE WORKERS (MLPIPELINE) ============")

@@ -84,6 +84,4 @@ def kill_model_workers():
     for i, p in enumerate(ps):
         p.kill()
         p.join()
-        print(
-            f"─────────shutdown model worker = {allowed_model_workers[i]} pid = {p.pid} exitcode = {p.exitcode} is_alive = {p.is_alive()}"
-        )
+    print("============ KILLED MODEL WORKERS (MLMODELS) ============")

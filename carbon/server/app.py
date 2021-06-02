@@ -121,13 +121,13 @@ async def beforeStart(_app, _loop):
 # This is run after the server has successfully started
 @app.listener("after_server_start")
 async def notify_server_started(_app, _loop):
-    printBox(f"Running [[ carbon :: SERVER ]] app (ENV = {server_config.app.env})")
+    print("============ STARTING (SERVER) ============")
 
 
 # This is run before the server starts shuttings down
 @app.listener("before_server_stop")
 async def notify_server_stopping(_app, _loop):
-    printBox("Shutting down server....................................")
+    print("============ STOPING  (SERVER) ============")
 
 
 # This is run after all the remaining requests have been processesed
