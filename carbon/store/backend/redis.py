@@ -10,12 +10,12 @@ import traceback
 import uuid
 from collections import namedtuple
 from multiprocessing import Process, Queue
+from pprint import pprint
 from typing import Any, List, Optional, Tuple
 
 import jwt
 import redis
 from pydantic import BaseModel
-from pprint import pprint
 
 from ..config import MLModel, classifiers, jobqueue_config, multi_classifiers, regressors
 

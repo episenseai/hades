@@ -7,39 +7,26 @@ license = "LICENSE"
 readme = "README.md"
 
 [tool.poetry.dependencies]
-python = "^3.9"
-numpy = "^1.20.0"
-scipy = "^1.6.0"
-pandas = "^1.2.0"
+python = ">=3.9,<3.10"
+numpy = "^1.20.3"
+scipy = "^1.6.3"
+pandas = "^1.2.4"
 redis = "^3.5.3"
-hiredis = "^1.1.0"
-PyJWT = "^2.0.0"
-scikit-learn = "^0.24.0"
-matplotlib = "^3.3.3"
-typer = {extras = ["all"], version = "^0.3.2"}
-tabulate = "^0.8.7"
-tqdm = "^4.55.1"
-pydantic = {extras = ["email", "typing_extensions", "dotenv"], version = "^1.7.3"}
-sanic = "^20.12.1"
-Sanic-Cors = "^0.10.0"
+hiredis = "^2.0.0"
+PyJWT = "^2.1.0"
+scikit-learn = "^0.24.2"
+matplotlib = "^3.4.2"
+pydantic = {extras = ["email", "typing_extensions", "dotenv"], version = "^1.8.2"}
+sanic = "^21.3.4"
+sanic-cors = "^1.0.0"
 
 [tool.poetry.dev-dependencies]
 pytest = "^5.2"
-ipython = "^7.19.0"
-pylint = "^2.6.0"
-pytest-mock = "^3.5.0"
-pytest-asyncio = "^0.14.0"
-isort = "^5.7.0"
-flake8 = "^3.8.4"
-flake8-isort = "^4.0.0"
-flake8-builtins = "^1.5.3"
-flake8-comprehensions = "^3.3.1"
-mypy = "^0.790"
-jedi = "<0.18"
+black = "^21.5b1"
+isort = "^5.8.0"
+flake8 = "^3.9.2"
+flake8-comprehensions = "^3.5.0"
 devtools = {extras = ["pygments"], version = "^0.6.1"}
-flake8-quotes = "^3.2.0"
-black = "^20.8b1"
-autoflake = "^1.4"
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]
@@ -57,3 +44,25 @@ testpaths = [
 
 [tool.black]
 line-length = 120
+exclude = "(.eggs|.git|.hg|.mypy_cache|.pytest_cache|.ipynb_checkpoints|.nox|.tox|.venv|.svn|_build|buck-out|build|dist)"
+
+[tool.isort]
+profile = "black"
+src_paths = ["carbon", "tests"]
+line_length = 120
+
+[tool.pyright]
+include = ["carbon"]
+extraPaths = ["carbon"]
+exclude = [".venv", "**/__pycache__", "**/node_modules", "target"]
+#venvPath = ".venv"
+
+reportTypeshedErrors = false
+reportUnboundVariable = "none"
+reportMissingImports = true
+reportMissingTypeStubs = false
+reportGeneralTypeIssues = "none"
+
+executionEnvironments = [
+  { root = "./", extraPaths = ["carbon"], exclude = [".venv", "**/__pycache__", "**/node_modules", "target"] }
+]

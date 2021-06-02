@@ -1,5 +1,5 @@
 [flake8]
-ignore = E203, E302, E266, E501, W503, W504, F403, F401, E731, F841, E231, I001, W292
+ignore = E203, E302, E266, E501, W503, W504, F403, F401, E402, E731, E741, E742, E743, F841, E231, I001, W292, E221
 exclude = .git,.venv,__pycache__,docs,old,build,dist,.tox,.nox,*.pyc,.eggs,*.egg-info,*.egg,node_modules,.pytest_cache,.ipynb_checkpoints,.cache,__init__.py
 max-line-length = 120
 max-complexity = 100
