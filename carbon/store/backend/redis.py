@@ -12,6 +12,8 @@ from collections import namedtuple
 from multiprocessing import Process, Queue
 from pprint import pprint
 from typing import Any, List, Optional, Tuple
+from devtools import debug
+import orjson
 
 import jwt
 import redis
@@ -170,7 +172,9 @@ class RedisTasks:
         to convert model results dictionary to json
         """
         try:
-            return json.dumps(item, allow_nan=True)
+            data = orjson.dumps(item, option=orjson.OPT_SERIALIZE_NUMPY)
+            debug(data)
+            return data
         except Exception as ex:
             raise JSONEncodeError from ex
 
@@ -180,7 +184,9 @@ class RedisTasks:
         to parse JSON config data from redis into python dictionary
         """
         try:
-            return json.loads(item)
+            data = orjson.loads(item)
+            debug(data)
+            return data
         except Exception as ex:
             raise JSONDecodeError from ex
 
@@ -892,7 +898,16 @@ class ModelsTasksProducer(RedisTasksProducer):
                             # a single transaction
                             pipe.multi()
                             mss = {}
+                            from devtools import debug
+
+                            debug(models_to_build)
                             for i, model in enumerate(models_to_build):
+                                print(changed_hparams)
+                                if model.modelid not in changed_hparams:
+                                    print(f"{model.modelid} model does not have hyperparams")
+                                    hparams = {}
+                                else:
+                                    hparams = changed_hparams[model.modelid]
                                 print(changed_hparams)
                                 self.modeljob_add(
                                     client=pipe,
@@ -916,7 +931,7 @@ class ModelsTasksProducer(RedisTasksProducer):
                                         cancelled_hashmap,  # 17
                                         f"{model.modelid}:JOBID",  # 18
                                         f"{model.modelid}:HYPERPARAMS",  # 19
-                                        self.to_JSON(changed_hparams[model.modelid]),  # 20
+                                        self.to_JSON(hparams),  # 20
                                     ],
                                 )
                                 if not job_rerun:
@@ -1191,6 +1206,7 @@ class ModelsTasksConsumer(RedisTasksConsumer):
                         pipe.hset(model_result_hashmap, f"{modelid}:PICKLE", file_path)
                     # and finally, execute the pipeline (the set command)
                     pipe.execute()
+                    debug("*****", result_dict)
                     # if a WatchError wasn't raised during execution, everything
                     # we just did happened atomically.
 

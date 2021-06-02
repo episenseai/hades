@@ -22,6 +22,7 @@ from carbon.mlmodels.utils import (
 
 def build(confign):
     config = confign["data"]
+    model_config = confign["hyper_params"]
     finalFeatureListGenerator(config)
     columnType = finaltypeOfColumnUserUpdated(config)
     df, X, Y = loadData(config)
@@ -35,7 +36,7 @@ def build(confign):
     X_train, X_test, Y_train, Y_test = splitTrainTestdataset(X, Y, config)
 
     # print("start", datetime.now())
-    clf, clf_fit, clf_results = gridSearchAdaBoostClf(X_train, Y_train, config)
+    clf, clf_fit, clf_results = gridSearchAdaBoostClf(X_train, Y_train, config, model_config)
     # print("end", datetime.now())
 
     # Plot of a ROC curve for a specific class
@@ -55,27 +56,49 @@ def build(confign):
     )
 
 
-def gridSearchAdaBoostClf(X, Y, config):
-    gsClf = GridSearchCV(
-        AdaBoostClassifier(
-            random_state=0,
-        ),
-        param_grid={"n_estimators": [50, 100], "learning_rate": [0.1, 1, 2]},
-        cv=config["data"]["cv"]["folds"],
-    )
-    gsClf_fit = gsClf.fit(X, Y)
-    gsClf_fit_estimator = gsClf_fit.best_estimator_
-    gsclf_results = {
-        "cvresult_list": convert_cvresults_tolist(gsClf_fit.cv_results_),
-        "mean_test_score": gsClf_fit.cv_results_["mean_test_score"].tolist(),
-        "params": gsClf_fit.cv_results_["params"],
-        # gsClf_fit.best_estimator_,
-        "best_score": round(gsClf_fit.best_score_, 2),
-        "best_params": list(zip(gsClf_fit.best_params_.keys(), gsClf_fit.best_params_.values())),
-        # "scorer_function": str(gsClf_fit.scorer_),
-        # gsClf_fit.best_index_,
-    }
-    return gsClf, gsClf_fit_estimator, gsclf_results
+def gridSearchAdaBoostClf(X, Y, config, model_config=None):
+    if not model_config:
+        gsClf = GridSearchCV(
+            AdaBoostClassifier(
+                random_state=0,
+            ),
+            param_grid={"n_estimators": [50, 100], "learning_rate": [0.1, 1, 2]},
+            cv=config["data"]["cv"]["folds"],
+        )
+        gsClf_fit = gsClf.fit(X, Y)
+        gsClf_fit_estimator = gsClf_fit.best_estimator_
+        gsclf_results = {
+            "cvresult_list": convert_cvresults_tolist(gsClf_fit.cv_results_),
+            "mean_test_score": gsClf_fit.cv_results_["mean_test_score"].tolist(),
+            "params": gsClf_fit.cv_results_["params"],
+            # gsClf_fit.best_estimator_,
+            "best_score": round(gsClf_fit.best_score_, 2),
+            "best_params": list(zip(gsClf_fit.best_params_.keys(), gsClf_fit.best_params_.values())),
+            # "scorer_function": str(gsClf_fit.scorer_),
+            # gsClf_fit.best_index_,
+        }
+        return gsClf, gsClf_fit_estimator, gsclf_results
+    else:
+        gsClf = GridSearchCV(
+            AdaBoostClassifier(
+                random_state=0,
+            ),
+            param_grid=model_config,
+            cv=config["data"]["cv"]["folds"],
+        )
+        gsClf_fit = gsClf.fit(X, Y)
+        gsClf_fit_estimator = gsClf_fit.best_estimator_
+        gsclf_results = {
+            "cvresult_list": convert_cvresults_tolist(gsClf_fit.cv_results_),
+            "mean_test_score": gsClf_fit.cv_results_["mean_test_score"].tolist(),
+            "params": gsClf_fit.cv_results_["params"],
+            # gsClf_fit.best_estimator_,
+            "best_score": round(gsClf_fit.best_score_, 2),
+            "best_params": list(zip(gsClf_fit.best_params_.keys(), gsClf_fit.best_params_.values())),
+            # "scorer_function": str(gsClf_fit.scorer_),
+            # gsClf_fit.best_index_,
+        }
+        return gsClf, gsClf_fit_estimator, gsclf_results
 
 
 # pprint(build_model(config4))

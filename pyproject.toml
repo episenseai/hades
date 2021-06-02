@@ -19,6 +19,7 @@ matplotlib = "^3.4.2"
 pydantic = {extras = ["email", "typing_extensions", "dotenv"], version = "^1.8.2"}
 sanic = "^21.3.4"
 sanic-cors = "^1.0.0"
+orjson = "^3.5.2"
 
 [tool.poetry.dev-dependencies]
 pytest = "^5.2"

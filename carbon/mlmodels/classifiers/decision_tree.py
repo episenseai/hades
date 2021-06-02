@@ -19,10 +19,13 @@ from carbon.mlmodels.utils import (
 # from pprint import pprint
 # from datetime import datetime
 from .confgin import finalconfig1
+from devtools import debug
 
 
-def build(confign, model_config=None):
+def build(confign):
+    # debug(confign)
     config = confign["data"]
+    model_config = confign["hyper_params"]
     finalFeatureListGenerator(config)
     columnType = finaltypeOfColumnUserUpdated(config)
     df, X, Y = loadData(config)
@@ -98,6 +101,7 @@ def rocCurveforMultiClassDecisionTree(X, Y, catClasses, clfObject):
 
 
 def gridSearchDecisionTreeClf(X, Y, config, model_config=None):
+    # debug(model_config)
     if not model_config:
         gsClf = GridSearchCV(
             DecisionTreeClassifier(criterion="gini", random_state=100),
