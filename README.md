@@ -10,3 +10,8 @@
 ```bash
 make install
 ```
+
+## Start apps:
+- `./server`
+- `./mlmodels`
+- `./mlpipeline`
