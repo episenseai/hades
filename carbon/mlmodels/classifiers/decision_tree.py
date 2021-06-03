@@ -23,7 +23,7 @@ from devtools import debug
 
 
 def build(confign):
-    # debug(confign)
+    debug(confign)
     config = confign["data"]
     model_config = confign["hyper_params"]
     finalFeatureListGenerator(config)
@@ -43,16 +43,16 @@ def build(confign):
 
     clf_gini, clf_gini_fit, clf_results = gridSearchDecisionTreeClf(X_train, Y_train, config, model_config)
     # print("end", datetime.now())
-    debug(model_config)
-    if "hpresults" not in config.keys():
-        config["hpresults"] = []
+    # debug(model_config)
+    if "hp_results" not in confign.keys():
+        confign["hp_results"] = []
     hp_result = {
         "modelid": "6bb167c7-fd88-4fc1-8cc9-5005b463a6b4",
         "hparams": model_config,
         "result": clf_results,
     }
-    config["hpresults"].append(hp_result)
-    debug(config["hpresults"])
+    confign["hp_results"].append(hp_result)
+    # debug(config["hpresults"])
 
     # Model Evaluation
     Y_gini_pred = clf_gini_fit.predict(X_test)
@@ -76,7 +76,9 @@ def build(confign):
     roc = deliverRoCResult(catClasses, fpr, tpr, roc_auc)
 
     return (
-        deliverformattedResultClf(config, catClasses, metricResult, confusion, roc, grid_results=clf_results),
+        deliverformattedResultClf(
+            config, catClasses, metricResult, confusion, roc, grid_results=clf_results, hp_results=confign["hp_results"]
+        ),
         clf_gini_fit,
     )
 

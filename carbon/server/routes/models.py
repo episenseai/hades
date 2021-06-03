@@ -136,7 +136,7 @@ async def model_results(request):
                     status = 400
                 else:
                     data = model_producer.get_model_data(request.ctx.userid, request.args["projectid"][0], models_list)
-                    debug(data)
+                    # debug(data)
                     info = f"Got models data for the {proj[0]} project"
                     status = 200
     except Exception as ex:

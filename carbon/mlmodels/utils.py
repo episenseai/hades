@@ -364,7 +364,7 @@ def deliverRoCResult(catClasses, fpr, tpr, roc_auc):
     return roc
 
 
-def deliverformattedResultClf(config, catClasses, metricResult, confusion, roc, grid_results=None):
+def deliverformattedResultClf(config, catClasses, metricResult, confusion, roc, grid_results=None, hp_results=[]):
     if grid_results:
         returnResult = {
             "classes": list(catClasses),
@@ -373,7 +373,7 @@ def deliverformattedResultClf(config, catClasses, metricResult, confusion, roc, 
             "cm": confusion.tolist(),
             "roc": roc,
             "grid_results": grid_results,
-            "hp_results": config["hpresults"],
+            "hp_results": hp_results,
         }
     else:
         returnResult = {

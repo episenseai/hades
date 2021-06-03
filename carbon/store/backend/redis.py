@@ -60,6 +60,7 @@ def main_task_wrapper(func, arg, result_queue: Queue):
 
     try:
         result = func(arg)
+        # debug(result)
         # import time
         # from random import randint
 
@@ -173,7 +174,7 @@ class RedisTasks:
         """
         try:
             data = orjson.dumps(item, option=orjson.OPT_SERIALIZE_NUMPY)
-            debug(data)
+            # debug(data)
             return data
         except Exception as ex:
             raise JSONEncodeError from ex
@@ -185,7 +186,7 @@ class RedisTasks:
         """
         try:
             data = orjson.loads(item)
-            debug(data)
+            # debug(data)
             return data
         except Exception as ex:
             raise JSONDecodeError from ex
@@ -898,7 +899,6 @@ class ModelsTasksProducer(RedisTasksProducer):
                             # a single transaction
                             pipe.multi()
                             mss = {}
-                            from devtools import debug
 
                             debug(models_to_build)
                             for i, model in enumerate(models_to_build):
@@ -1127,8 +1127,12 @@ class ModelsTasksConsumer(RedisTasksConsumer):
                                 self._item[1]["pipe_result_hashmap"],
                                 f"{self._item[1]['modelid']}:HYPERPARAMS",
                             )
+                            pipe.hget(
+                                self._item[1]["model_result_hashmap"],
+                                f"{self._item[1]['modelid']}:DATA",
+                            )
                             ret = pipe.execute()
-                            print("************Result********:", self._item)
+                            # debug("************Result********:", self.from_JSON(ret[0]))
                             result = {
                                 "jobid": self.jobid,
                                 "modelid": self._item[1]["modelid"],
@@ -1137,8 +1141,9 @@ class ModelsTasksConsumer(RedisTasksConsumer):
                                 "model_result_hashmap": self._item[1]["model_result_hashmap"],
                                 "data": self.from_JSON(ret[0]),
                                 "hyper_params": self.from_JSON(ret[2]),
+                                "model_result_dict": self.from_JSON(ret[3]),
                             }
-                            # print("************Result********:", result)
+                            debug("************Result********:", result["model_result_hashmap"])
                         break
                     except redis.WatchError:
                         if watch_error_count > 100:
@@ -1206,7 +1211,7 @@ class ModelsTasksConsumer(RedisTasksConsumer):
                         pipe.hset(model_result_hashmap, f"{modelid}:PICKLE", file_path)
                     # and finally, execute the pipeline (the set command)
                     pipe.execute()
-                    debug("*****", result_dict)
+                    # debug("*****###****", result_dict["hp_results"])
                     # if a WatchError wasn't raised during execution, everything
                     # we just did happened atomically.
 
@@ -1267,13 +1272,16 @@ class ModelsTasksConsumer(RedisTasksConsumer):
                 )
                 # time.sleep(10)
                 # job["data"] -> dict of finalconfig:GET data
+
                 config = {
                     "modelid": job["modelid"],
                     "modelname": job["modelname"],
                     "model_type": job["model_type"],
                     "data": job["data"],
                     "hyper_params": job["hyper_params"],
+                    "hp_results": job["model_result_dict"].get("hp_results", None),
                 }
+                debug(config["hp_results"], "**********", job["model_result_dict"]["hp_results"])
                 cancelled_hashmap = cancelled_hashmap = self._item[1]["cancelled_hashmap"]
                 # (result_dict, model_to_pickle) = self.model_func_dict[job["modelid"]](config)
                 (result, error_msg, cancelled, exception) = execute_task(

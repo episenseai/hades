@@ -1,6 +1,7 @@
 from sklearn.ensemble import AdaBoostClassifier
 from sklearn.metrics import confusion_matrix
 from sklearn.model_selection import GridSearchCV
+from devtools import debug
 
 from carbon.mlmodels.utils import (
     convert_cvresults_tolist,
@@ -38,7 +39,16 @@ def build(confign):
     # print("start", datetime.now())
     clf, clf_fit, clf_results = gridSearchAdaBoostClf(X_train, Y_train, config, model_config)
     # print("end", datetime.now())
-
+    # debug(model_config)
+    if "hpresults" not in config.keys():
+        config["hpresults"] = []
+    hp_result = {
+        "modelid": "24ee24ed-6174-4a79-bf53-215d6fbcf680",
+        "hparams": model_config,
+        "result": clf_results,
+    }
+    config["hpresults"].append(hp_result)
+    # debug(config["hpresults"])
     # Plot of a ROC curve for a specific class
     fpr, tpr, roc_auc, Y_pred, Y_score = rocCurveforClassDecisionFunction(
         X_train, X_test, Y_train, Y_test, catClasses, clf_fit
