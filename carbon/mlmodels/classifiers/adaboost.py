@@ -40,14 +40,14 @@ def build(confign):
     clf, clf_fit, clf_results = gridSearchAdaBoostClf(X_train, Y_train, config, model_config)
     # print("end", datetime.now())
     # debug(model_config)
-    if "hpresults" not in config.keys():
-        config["hpresults"] = []
+    if not confign["hp_results"]:
+        confign["hp_results"] = []
     hp_result = {
         "modelid": "24ee24ed-6174-4a79-bf53-215d6fbcf680",
         "hparams": model_config,
         "result": clf_results,
     }
-    config["hpresults"].append(hp_result)
+    confign["hp_results"].append(hp_result)
     # debug(config["hpresults"])
     # Plot of a ROC curve for a specific class
     fpr, tpr, roc_auc, Y_pred, Y_score = rocCurveforClassDecisionFunction(
@@ -61,7 +61,9 @@ def build(confign):
 
     roc = deliverRoCResult(catClasses, fpr, tpr, roc_auc)
     return (
-        deliverformattedResultClf(config, catClasses, metricResult, confusion, roc, grid_results=clf_results),
+        deliverformattedResultClf(
+            config, catClasses, metricResult, confusion, roc, grid_results=clf_results, hp_results=confign["hp_results"]
+        ),
         clf_fit,
     )
 

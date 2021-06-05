@@ -23,7 +23,7 @@ from devtools import debug
 
 
 def build(confign):
-    debug(confign)
+    # debug(confign)
     config = confign["data"]
     model_config = confign["hyper_params"]
     finalFeatureListGenerator(config)
@@ -44,7 +44,7 @@ def build(confign):
     clf_gini, clf_gini_fit, clf_results = gridSearchDecisionTreeClf(X_train, Y_train, config, model_config)
     # print("end", datetime.now())
     # debug(model_config)
-    if "hp_results" not in confign.keys():
+    if not confign["hp_results"]:
         confign["hp_results"] = []
     hp_result = {
         "modelid": "6bb167c7-fd88-4fc1-8cc9-5005b463a6b4",

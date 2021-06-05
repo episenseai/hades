@@ -1132,7 +1132,11 @@ class ModelsTasksConsumer(RedisTasksConsumer):
                                 f"{self._item[1]['modelid']}:DATA",
                             )
                             ret = pipe.execute()
-                            # debug("************Result********:", self.from_JSON(ret[0]))
+                            debug("************Result********:", ret[3])
+                            if not ret[3]:
+                                model_result = {}
+                            else:
+                                model_result = self.from_JSON(ret[3])
                             result = {
                                 "jobid": self.jobid,
                                 "modelid": self._item[1]["modelid"],
@@ -1141,7 +1145,7 @@ class ModelsTasksConsumer(RedisTasksConsumer):
                                 "model_result_hashmap": self._item[1]["model_result_hashmap"],
                                 "data": self.from_JSON(ret[0]),
                                 "hyper_params": self.from_JSON(ret[2]),
-                                "model_result_dict": self.from_JSON(ret[3]),
+                                "model_result_dict": model_result,
                             }
                             debug("************Result********:", result["model_result_hashmap"])
                         break
@@ -1281,7 +1285,7 @@ class ModelsTasksConsumer(RedisTasksConsumer):
                     "hyper_params": job["hyper_params"],
                     "hp_results": job["model_result_dict"].get("hp_results", None),
                 }
-                debug(config["hp_results"], "**********", job["model_result_dict"]["hp_results"])
+                # debug(config["hp_results"], "**********", job["model_result_dict"]["hp_results"])
                 cancelled_hashmap = cancelled_hashmap = self._item[1]["cancelled_hashmap"]
                 # (result_dict, model_to_pickle) = self.model_func_dict[job["modelid"]](config)
                 (result, error_msg, cancelled, exception) = execute_task(
