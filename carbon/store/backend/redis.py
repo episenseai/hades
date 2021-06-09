@@ -1147,7 +1147,6 @@ class ModelsTasksConsumer(RedisTasksConsumer):
                                 "hyper_params": self.from_JSON(ret[2]),
                                 "model_result_dict": model_result,
                             }
-                            debug("************Result********:", result["model_result_hashmap"])
                         break
                     except redis.WatchError:
                         if watch_error_count > 100:
@@ -1305,7 +1304,6 @@ class ModelsTasksConsumer(RedisTasksConsumer):
                     (result_dict, model_to_pickle) = result
                 else:
                     (result_dict, model_to_pickle) = ({}, {})
-
             except KeyboardInterrupt:
                 break
             except Exception as error:

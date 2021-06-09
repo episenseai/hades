@@ -1,4 +1,5 @@
 import codecs
+import re
 import tempfile
 import time
 from random import sample
@@ -364,26 +365,21 @@ def deliverRoCResult(catClasses, fpr, tpr, roc_auc):
     return roc
 
 
-def deliverformattedResultClf(config, catClasses, metricResult, confusion, roc, grid_results=None, hp_results=[]):
-    if grid_results:
-        returnResult = {
-            "classes": list(catClasses),
-            "metrics": {"val": metricResult[config["data"]["optimizeUsing"]]},
-            # confusion matrix: [[TP, FP], [FN, TN]]
-            "cm": confusion.tolist(),
-            "roc": roc,
-            "grid_results": grid_results,
-            "hp_results": hp_results,
-        }
-    else:
-        returnResult = {
-            "classes": list(catClasses),
-            "metrics": {"val": metricResult[config["data"]["optimizeUsing"]]},
-            # confusion matrix: [[TP, FP], [FN, TN]]
-            "cm": confusion.tolist(),
-            "roc": roc,
-        }
-    # pprint(returnResult)
+def deliverformattedResultClf(
+    config, catClasses, metricResult, confusion, roc, grid_results=None, hp_results=[], possible_model_params=None
+):
+
+    returnResult = {
+        "classes": list(catClasses),
+        "metrics": {"val": metricResult[config["data"]["optimizeUsing"]]},
+        # confusion matrix: [[TP, FP], [FN, TN]]
+        "cm": confusion.tolist(),
+        "roc": roc,
+        "grid_results": grid_results,
+        "hp_results": hp_results,
+        "possible_model_params": possible_model_params,
+    }
+
     return returnResult
 
 
