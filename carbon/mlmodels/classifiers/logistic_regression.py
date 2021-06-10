@@ -17,11 +17,6 @@ from carbon.mlmodels.utils import (
     splitTrainTestdataset,
 )
 
-# from pprint import pprint
-# from datetime import datetime
-
-# from Models.config import config1, config2, config3
-
 
 def build(confign):
     config = confign["data"]
@@ -37,12 +32,26 @@ def build(confign):
     # Make the train test split, default = 75%
     X_train, X_test, Y_train, Y_test = splitTrainTestdataset(X, Y, config)
 
-    # print("start", datetime.now())
-    clf, clf_fit, clf_results = gridSearchLogisticRegressionClf(X_train, Y_train, config)
-    # print("end", datetime.now())
+    possible_param_grid, default_hp_grid = paramlist(confign)
+    model_config = confign["hyper_params"]
+    if not model_config:
+        model_config = default_hp_grid
 
-    # print(clf.best_params_, clf.best_score_)
-    # print(clf.cv_results_)
+    clf_fit, clf_results = gridSearchLogisticRegressionClf(X_train, Y_train, config, model_config)
+
+    if not confign["hp_results"]:
+        confign["hp_results"] = [
+            {
+                "hp_grid": model_config,
+                "result": clf_results,
+            },
+        ]
+    else:
+        hp_result = {
+            "hp_grid": model_config,
+            "result": clf_results,
+        }
+        confign["hp_results"].append(hp_result)
 
     # Plot of a ROC curve for a specific class
     fpr, tpr, roc_auc, Y_pred, Y_score = rocCurveforClassPredictProba(
@@ -57,24 +66,31 @@ def build(confign):
     roc = deliverRoCResult(catClasses, fpr, tpr, roc_auc)
     return (
         deliverformattedResultClf(
-            config, catClasses, metricResult, confusion, roc, grid_results=clf_results
+            config,
+            catClasses,
+            metricResult,
+            confusion,
+            roc,
+            grid_results=clf_results,
+            hp_results=confign["hp_results"],
+            possible_model_params=possible_param_grid,
         ),
         clf_fit,
     )
 
 
-def gridSearchLogisticRegressionClf(X, Y, config):
+def gridSearchLogisticRegressionClf(X, Y, config, model_config=None):
     steps = [
         ("scalar", StandardScaler()),
         (
             "clf",
-            LogisticRegression(multi_class="multinomial", solver="sag", max_iter=500),
+            LogisticRegression(multi_class="multinomial", max_iter=500),
         ),
     ]
     make_pipeline = Pipeline(steps)
     gsClf = GridSearchCV(
         make_pipeline,
-        param_grid={"clf__C": [0.01, 0.1, 1, 10, 100]},
+        param_grid=model_config,
         cv=config["data"]["cv"]["folds"],
     )
     gsClf_fit = gsClf.fit(X, Y)
@@ -91,7 +107,22 @@ def gridSearchLogisticRegressionClf(X, Y, config):
         # "scorer_function": str(gsClf_fit.scorer_),
         # gsClf_fit.best_index_,
     }
-    return gsClf, gsClf_fit_estimator, gsclf_results
+    return gsClf_fit_estimator, gsclf_results
 
 
-# # pprint(build_model(config1))
+def paramlist(confign):
+    config = confign["data"]
+    possible_param_grid = {
+        "clf__penalty": {"default": "l2", "possible_str": ["l1", "l2", "elasticnet", "none"]},
+        "clf__C": {
+            "default": 1.0,
+            "possible_list": [0.01, 0.01, 0.1, 1, 10, 100, 1000],
+        },
+        "clf__solver": {
+            "default": "lbfgs",
+            "possible_list": ["newton-cg’", "sag", "saga", "lbfgs"],
+        },
+        "clf__warm_start": {"default": False, "possible_str": [True, False]},
+    }
+    default_hp_grid = {"clf__C": [0.01, 0.1, 1, 10, 100]}
+    return (possible_param_grid, default_hp_grid)
