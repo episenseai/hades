@@ -153,8 +153,7 @@ def paramlist(confign):
         "max_features": {"default": None, "possible_int": [1, config["data"]["includedFeatures"]]},
         "max_leaf_nodes": {"default": None, "possible_int": [1, config["data"]["rows"]]},
     }
-    hp_list1 = range(2, 32, 10)
-    hp_list2 = range(2, len(finalFeatureListGenerator(config)), 10)
+
     default_hp_grid = {
         "min_samples_split": [2, 12, 22],  # range(2, 32, 10),
         "max_features": [2, 12],  # range(2, len(finalFeatureListGenerator(config)), 10),
