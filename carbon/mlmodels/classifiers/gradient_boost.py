@@ -15,10 +15,6 @@ from carbon.mlmodels.utils import (
     splitTrainTestdataset,
 )
 
-# from pprint import pprint
-# from datetime import datetime
-# from Models.config import config1, config2, config4
-
 
 def build(confign):
     config = confign["data"]
@@ -32,10 +28,26 @@ def build(confign):
     # Make the train test split, default = 75%
     X_train, X_test, Y_train, Y_test = splitTrainTestdataset(X, Y, config)
 
-    # print("start", datetime.now())
-    clf, clf_fit, clf_results = gridSearchGradientBoostingClf(X_train, Y_train, config)
-    # print("end", datetime.now())
+    possible_param_grid, default_hp_grid = paramlist(confign)
+    model_config = confign["hyper_params"]
+    if not model_config:
+        model_config = default_hp_grid
 
+    clf_fit, clf_results = gridSearchGradientBoostingClf(X_train, Y_train, config, model_config)
+
+    if not confign["hp_results"]:
+        confign["hp_results"] = [
+            {
+                "hp_grid": model_config,
+                "result": clf_results,
+            },
+        ]
+    else:
+        hp_result = {
+            "hp_grid": model_config,
+            "result": clf_results,
+        }
+        confign["hp_results"].append(hp_result)
     # Plot of a ROC curve for a specific class
     fpr, tpr, roc_auc, Y_pred, Y_score = rocCurveforClassDecisionFunction(
         X_train, X_test, Y_train, Y_test, catClasses, clf_fit
@@ -46,21 +58,23 @@ def build(confign):
     roc = deliverRoCResult(catClasses, fpr, tpr, roc_auc)
     return (
         deliverformattedResultClf(
-            config, catClasses, metricResult, confusion, roc, grid_results=clf_results
+            config,
+            catClasses,
+            metricResult,
+            confusion,
+            roc,
+            grid_results=clf_results,
+            hp_results=confign["hp_results"],
+            possible_model_params=possible_param_grid,
         ),
         clf_fit,
     )
 
 
-def gridSearchGradientBoostingClf(X, Y, config):
+def gridSearchGradientBoostingClf(X, Y, config, model_config=None):
     gsClf = GridSearchCV(
         GradientBoostingClassifier(n_iter_no_change=5, tol=0.01, random_state=0),
-        param_grid={
-            "n_estimators": [50, 100],
-            "max_features": ["auto", "sqrt"],
-            # "max_depth": range(2, len(config["Included_features"]), 2),
-            # "min_samples_split": range(2, 100, 10),
-        },
+        param_grid=model_config,
         cv=config["data"]["cv"]["folds"],
     )
     gsClf_fit = gsClf.fit(X, Y)
@@ -75,7 +89,29 @@ def gridSearchGradientBoostingClf(X, Y, config):
         # "scorer_function": str(gsClf_fit.scorer_),
         # gsClf_fit.best_index_,
     }
-    return gsClf, gsClf_fit_estimator, gsclf_results
+    return gsClf_fit_estimator, gsclf_results
 
 
-# pprint(build_model(config1))
+def paramlist(confign):
+    config = confign["data"]
+    possible_param_grid = {
+        "loss": {"default": "deviance", "possible_str": ["deviance", "exponential"]},
+        "learning_rate": {
+            "default": 0.1,
+            "possible_list": [0.1, 0.25, 0.5, 0.75, 1, 1.25, 1.5, 1.75, 2],
+        },
+        "n_estimators": {
+            "default": 100,
+            "possible_list": list(range(100, 1001, 100)),
+        },
+        "criterion": {"default": "friedman_mse", "possible_str": ["friedman_mse", "mse"]},
+        "max_depth": {"default": None, "possible_int": [1, config["data"]["rows"]]},
+        "min_samples_split": {"default": 2, "possible_int": [2, config["data"]["rows"]]},
+        "min_samples_leaf": {"default": 1, "possible_int": [1, config["data"]["rows"]]},
+        "max_features": {"default": None, "possible_str": [None, "auto", "sqrt", "log2"]},
+    }
+    default_hp_grid = {
+        "n_estimators": [50, 100],
+        "max_features": ["auto", "sqrt"],
+    }
+    return (possible_param_grid, default_hp_grid)
