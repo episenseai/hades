@@ -34,9 +34,26 @@ def build(confign):
     # Make the train test split, default = 75%
     X_train, X_test, Y_train, Y_test = splitTrainTestdataset(X, Y, config)
 
+    possible_param_grid, default_hp_grid = paramlist(confign)
+    model_config = confign["hyper_params"]
+    if not model_config:
+        model_config = default_hp_grid
     # print("start", datetime.now())
-    clf, clf_fit, clf_results = gridSearchBernoulliNBClf(X_train, Y_train, config)
+    clf_fit, clf_results = gridSearchBernoulliNBClf(X_train, Y_train, config, model_config)
     # print("end", datetime.now())
+    if not confign["hp_results"]:
+        confign["hp_results"] = [
+            {
+                "hp_grid": model_config,
+                "result": clf_results,
+            },
+        ]
+    else:
+        hp_result = {
+            "hp_grid": model_config,
+            "result": clf_results,
+        }
+        confign["hp_results"].append(hp_result)
 
     # Plot of a ROC curve for a specific class
     fpr, tpr, roc_auc, Y_pred, Y_score = rocCurveforClassPredictProba(
@@ -48,18 +65,25 @@ def build(confign):
     roc = deliverRoCResult(catClasses, fpr, tpr, roc_auc)
     return (
         deliverformattedResultClf(
-            config, catClasses, metricResult, confusion, roc, grid_results=clf_results
+            config,
+            catClasses,
+            metricResult,
+            confusion,
+            roc,
+            grid_results=clf_results,
+            hp_results=confign["hp_results"],
+            possible_model_params=possible_param_grid,
         ),
         clf_fit,
     )
 
 
-def gridSearchBernoulliNBClf(X, Y, config):
+def gridSearchBernoulliNBClf(X, Y, config, model_config=None):
     steps = [("scalar", StandardScaler()), ("clf", BernoulliNB())]
     make_pipeline = Pipeline(steps)
     gsClf = GridSearchCV(
         make_pipeline,
-        param_grid={"clf__alpha": [0.01, 0.1, 1, 10, 100]},
+        param_grid=model_config,
         cv=config["data"]["cv"]["folds"],
     )
     gsClf_fit = gsClf.fit(X, Y)
@@ -74,7 +98,17 @@ def gridSearchBernoulliNBClf(X, Y, config):
         # "scorer_function": str(gsClf_fit.scorer_),
         # gsClf_fit.best_index_,
     }
-    return gsClf, gsClf_fit_estimator, gsclf_results
+    return gsClf_fit_estimator, gsclf_results
 
 
-# # pprint(build_model(config1))
+def paramlist(confign):
+    config = confign["data"]
+    possible_param_grid = {
+        "clf__alpha": {
+            "default": 1.0,
+            "possible_list": [0.001, 0.01, 0.1, 0, 1, 10, 100, 1000],
+        },
+        "clf__fit_prior": {"default": True, "possible_str": [True, False]},
+    }
+    default_hp_grid = {"clf__alpha": [0.01, 0.1, 1, 10, 100]}
+    return (possible_param_grid, default_hp_grid)
