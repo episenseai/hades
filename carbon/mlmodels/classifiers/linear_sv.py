@@ -18,10 +18,6 @@ from carbon.mlmodels.utils import (
     splitTrainTestdataset,
 )
 
-# from pprint import pprint
-# from datetime import datetime
-# from Models.config import config1, config2, config4
-
 
 def build(confign):
     config = confign["data"]
@@ -35,9 +31,26 @@ def build(confign):
     # Make the train test split, default = 75%
     X_train, X_test, Y_train, Y_test = splitTrainTestdataset(X, Y, config)
 
-    # print("start", datetime.now())
-    clf, clf_fit, clf_results = gridSearchLinearSVClf(X_train, Y_train, config)
-    # print("end", datetime.now())
+    possible_param_grid, default_hp_grid = paramlist(confign)
+    model_config = confign["hyper_params"]
+    if not model_config:
+        model_config = default_hp_grid
+
+    clf_fit, clf_results = gridSearchLinearSVClf(X_train, Y_train, config, model_config)
+
+    if not confign["hp_results"]:
+        confign["hp_results"] = [
+            {
+                "hp_grid": model_config,
+                "result": clf_results,
+            },
+        ]
+    else:
+        hp_result = {
+            "hp_grid": model_config,
+            "result": clf_results,
+        }
+        confign["hp_results"].append(hp_result)
 
     # Plot of a ROC curve for a specific class
     fpr, tpr, roc_auc, Y_pred, Y_score = rocCurveforClassDecisionFunction(
@@ -49,14 +62,20 @@ def build(confign):
     roc = deliverRoCResult(catClasses, fpr, tpr, roc_auc)
     return (
         deliverformattedResultClf(
-            config, catClasses, metricResult, confusion, roc, grid_results=clf_results
+            config,
+            catClasses,
+            metricResult,
+            confusion,
+            roc,
+            grid_results=clf_results,
+            hp_results=confign["hp_results"],
+            possible_model_params=possible_param_grid,
         ),
         clf_fit,
     )
 
 
-def gridSearchLinearSVClf(X, Y, config):
-
+def gridSearchLinearSVClf(X, Y, config, model_config=None):
     steps = [
         ("scalar", StandardScaler()),
         ("transformerNystroem", Nystroem(gamma=0.2, random_state=1)),
@@ -65,11 +84,7 @@ def gridSearchLinearSVClf(X, Y, config):
     make_pipeline = Pipeline(steps)
     gsClf = GridSearchCV(
         make_pipeline,
-        param_grid={
-            "clf__C": [0.1, 1, 10],
-            # "clf__penalty": ["l1", "l2"],
-            "clf__loss": ["hinge", "squared_hinge"],
-        },
+        param_grid=model_config,
         cv=config["data"]["cv"]["folds"],
     )
     gsClf_fit = gsClf.fit(X, Y)
@@ -84,7 +99,30 @@ def gridSearchLinearSVClf(X, Y, config):
         # "scorer_function": str(gsClf_fit.scorer_),
         # gsClf_fit.best_index_,
     }
-    return gsClf, gsClf_fit_estimator, gsclf_results
+    return gsClf_fit_estimator, gsclf_results
 
 
-# pprint(build_model(config1))
+def paramlist(confign):
+    config = confign["data"]
+    possible_param_grid = {
+        "clf__penalty": {"default": "l2", "possible_str": ["l1", "l2"]},
+        "clf__loss": {"default": "squared_hinge", "possible_str": ["squared_hinge", "hinge"]},
+        "clf__C": {
+            "default": 1.0,
+            "possible_list": [
+                0.01,
+                0.1,
+                1,
+                5,
+                10,
+                50,
+                100,
+            ],
+        },
+    }
+    default_hp_grid = {
+        "clf__C": [0.1, 1, 10],
+        # "clf__penalty": ["l1", "l2"],
+        "clf__loss": ["hinge", "squared_hinge"],
+    }
+    return (possible_param_grid, default_hp_grid)
