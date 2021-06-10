@@ -34,9 +34,26 @@ def build(confign):
     # Make the train test split, default = 75%
     X_train, X_test, Y_train, Y_test = splitTrainTestdataset(X, Y, config)
 
+    possible_param_grid, default_hp_grid = paramlist(confign)
+    model_config = confign["hyper_params"]
+    if not model_config:
+        model_config = default_hp_grid
     # print("start", datetime.now())
-    clf, clf_fit, clf_results = gridSearchBaggingClf(X_train, Y_train, config)
+    clf_fit, clf_results = gridSearchBaggingClf(X_train, Y_train, config, model_config)
     # print("end", datetime.now())
+    if not confign["hp_results"]:
+        confign["hp_results"] = [
+            {
+                "hp_grid": model_config,
+                "result": clf_results,
+            },
+        ]
+    else:
+        hp_result = {
+            "hp_grid": model_config,
+            "result": clf_results,
+        }
+        confign["hp_results"].append(hp_result)
 
     # Plot of a ROC curve for a specific class
     fpr, tpr, roc_auc, Y_pred, Y_score = rocCurveforClassPredictProba(
@@ -50,16 +67,23 @@ def build(confign):
     roc = deliverRoCResult(catClasses, fpr, tpr, roc_auc)
     return (
         deliverformattedResultClf(
-            config, catClasses, metricResult, confusion, roc, grid_results=clf_results
+            config,
+            catClasses,
+            metricResult,
+            confusion,
+            roc,
+            grid_results=clf_results,
+            hp_results=confign["hp_results"],
+            possible_model_params=possible_param_grid,
         ),
         clf_fit,
     )
 
 
-def gridSearchBaggingClf(X, Y, config):
+def gridSearchBaggingClf(X, Y, config, model_config=None):
     gsClf = GridSearchCV(
         BaggingClassifier(random_state=0),
-        param_grid={"n_estimators": [50, 100]},
+        param_grid=model_config,
         cv=config["data"]["cv"]["folds"],
     )
     gsClf_fit = gsClf.fit(X, Y)
@@ -74,7 +98,23 @@ def gridSearchBaggingClf(X, Y, config):
         # "scorer_function": str(gsClf_fit.scorer_),
         # gsClf_fit.best_index_,
     }
-    return gsClf, gsClf_fit_estimator, gsclf_results
+    return gsClf_fit_estimator, gsclf_results
 
 
-# pprint(build_model(config4))
+def paramlist(confign):
+    config = confign["data"]
+    possible_param_grid = {
+        "n_estimators": {
+            "default": 10,
+            "possible_list": list(range(10, 250, 20)),
+        },
+        "max_samples": {
+            "default": 1.0,
+            "possible_list": list(range(1, 100, 20)),
+        },
+        "max_features": {"default": 1.0, "possible_int": [1, config["data"]["includedFeatures"]]},
+        "bootstrap": {"default": False, "possible_str": [True, False]},
+        "warm_start": {"default": False, "possible_str": [True, False]},
+    }
+    default_hp_grid = {"n_estimators": [10, 50], "warm_start": [True, False]}
+    return (possible_param_grid, default_hp_grid)
