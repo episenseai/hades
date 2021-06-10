@@ -47,7 +47,9 @@ def build(confign):
     # plotRoCCurve(catClasses, fpr, tpr, roc_auc)
     roc = deliverRoCResult(catClasses, fpr, tpr, roc_auc)
     return (
-        deliverformattedResultClf(config, catClasses, metricResult, confusion, roc, grid_results=clf_results),
+        deliverformattedResultClf(
+            config, catClasses, metricResult, confusion, roc, grid_results=clf_results
+        ),
         clf_fit,
     )
 
@@ -58,7 +60,9 @@ def gridSearchPassiveAggressiveClf(X, Y, config):
         ("scalar", StandardScaler()),
         (
             "clf",
-            PassiveAggressiveClassifier(random_state=100, early_stopping=True, class_weight="balanced"),
+            PassiveAggressiveClassifier(
+                random_state=100, early_stopping=True, class_weight="balanced"
+            ),
         ),
     ]
     make_pipeline = Pipeline(steps)

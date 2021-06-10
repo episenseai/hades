@@ -90,7 +90,9 @@ def uniqueColumnIdUserUpdated(config):
 def csvFileSelector(config):
     df = None
     try:
-        zip_file = ZipFile(mlmodels_config.job.uploads_folder + "/" + config["consume:POST"]["data"]["filepath"])
+        zip_file = ZipFile(
+            mlmodels_config.job.uploads_folder + "/" + config["consume:POST"]["data"]["filepath"]
+        )
         csv_files = ""
         for csv_file in zip_file.infolist():
             if csv_file.filename.endswith(".csv"):
@@ -105,7 +107,9 @@ def csvFileSelector(config):
         with tempfile.TemporaryDirectory() as tmpdirname:
             # print("created temporary directory: ", tmpdirname)
             zip_file.extractall(tmpdirname)
-            with codecs.open(tmpdirname + "/" + csv_files, "r", encoding="utf-8", errors="ignore") as myfile:
+            with codecs.open(
+                tmpdirname + "/" + csv_files, "r", encoding="utf-8", errors="ignore"
+            ) as myfile:
                 time.sleep(10)
                 # print(myfile.read())
                 df = pd.read_csv(myfile)
@@ -129,7 +133,9 @@ def csvFileSelector(config):
 def finalCsvFileSelector(finalConfig):
     df = None
     try:
-        zip_file = ZipFile(mlmodels_config.jobs.uploads_folder + "/" + finalConfig["data"]["filepath"])
+        zip_file = ZipFile(
+            mlmodels_config.jobs.uploads_folder + "/" + finalConfig["data"]["filepath"]
+        )
         csv_files = ""
         for csv_file in zip_file.infolist():
             if csv_file.filename.endswith(".csv"):
@@ -144,7 +150,9 @@ def finalCsvFileSelector(finalConfig):
         with tempfile.TemporaryDirectory() as tmpdirname:
             # print("created temporary directory: ", tmpdirname)
             zip_file.extractall(tmpdirname)
-            with codecs.open(tmpdirname + "/" + csv_files, "r", encoding="utf-8", errors="ignore") as myfile:
+            with codecs.open(
+                tmpdirname + "/" + csv_files, "r", encoding="utf-8", errors="ignore"
+            ) as myfile:
                 time.sleep(10)
                 # print(myfile.read())
                 df = pd.read_csv(myfile)
@@ -233,7 +241,10 @@ def binCreation(dfColumn):
             counterLowbound = counter
             counter = round((counter + (maxValue - minValue) / 20), 4)
             # print(counterLowbound, (maxValue - counter))
-            counts.append((dfColumn[dfColumn < counter]).count() - (dfColumn[dfColumn < counterLowbound]).count())
+            counts.append(
+                (dfColumn[dfColumn < counter]).count()
+                - (dfColumn[dfColumn < counterLowbound]).count()
+            )
             breaks.append(counter)
     else:
         pass
@@ -366,7 +377,14 @@ def deliverRoCResult(catClasses, fpr, tpr, roc_auc):
 
 
 def deliverformattedResultClf(
-    config, catClasses, metricResult, confusion, roc, grid_results=None, hp_results=[], possible_model_params=None
+    config,
+    catClasses,
+    metricResult,
+    confusion,
+    roc,
+    grid_results=None,
+    hp_results=[],
+    possible_model_params=None,
 ):
 
     returnResult = {

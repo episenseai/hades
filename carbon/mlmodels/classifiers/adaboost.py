@@ -1,7 +1,7 @@
+from devtools import debug
 from sklearn.ensemble import AdaBoostClassifier
 from sklearn.metrics import confusion_matrix
 from sklearn.model_selection import GridSearchCV
-from devtools import debug
 
 from carbon.mlmodels.utils import (
     convert_cvresults_tolist,
@@ -105,7 +105,10 @@ def gridSearchAdaBoostClf(X, Y, config, model_config=None):
 def paramlist(confign):
     config = confign["data"]
     possible_param_grid = {
-        "n_estimators": {"default": 50, "possible_int": [50, 1000]},  # [min,max]
+        "n_estimators": {
+            "default": 50,
+            "possible_list": [50, 100, 150, 200, 250, 300, 350, 400, 450, 500],
+        },  # [min,max]
         "learning_rate": {"default": 1, "possible_float": [0.5, 5]},
         "algorithm": {"default": "SAMME.R", "possible_str": ["SAMME", "SAMME.R"]},
     }

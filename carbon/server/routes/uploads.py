@@ -19,7 +19,9 @@ async def signup(request):
             info = "Unauthorized request. Userid does not exist."
             status = 401
         elif ":" in request.files["file"][0].name:
-            info = "File name contains  ':'  , which is not allowed. Try again with a different name."
+            info = (
+                "File name contains  ':'  , which is not allowed. Try again with a different name."
+            )
             status = 400
         else:
             # print(request.files["file"][0].name)

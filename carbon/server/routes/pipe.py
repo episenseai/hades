@@ -17,7 +17,11 @@ async def next_stage(request):
             if proj is None:
                 info = f"Projectid {request.args['projectid'][0]} not associated with the user"
                 status = 400
-            elif "current_stage" not in request.json or "next_stage" not in request.json or "data" not in request.json:
+            elif (
+                "current_stage" not in request.json
+                or "next_stage" not in request.json
+                or "data" not in request.json
+            ):
                 info = "Bad request. missing values from post data"
                 status = 400
             elif (
@@ -25,7 +29,10 @@ async def next_stage(request):
                 or (request.json["next_stage"] not in seq[:-1])
                 or (request.json["current_stage"].split(":")[1] != "GET")
                 or (request.json["next_stage"].split(":")[1] != "POST")
-                or ((seq.index(request.json["current_stage"]) + 1) != seq.index(request.json["next_stage"]))
+                or (
+                    (seq.index(request.json["current_stage"]) + 1)
+                    != seq.index(request.json["next_stage"])
+                )
             ):
                 info = "Bad request. wrong data in post request"
                 status = 400
@@ -37,7 +44,9 @@ async def next_stage(request):
                     request.json["data"],
                 )
                 if res:
-                    data = pipe_producer.current_pipe_state(request.ctx.userid, request.args["projectid"][0])
+                    data = pipe_producer.current_pipe_state(
+                        request.ctx.userid, request.args["projectid"][0]
+                    )
                     if data is None:
                         info = "submitted the job but something happened while getting current pipe status"
                         status = 500
@@ -71,7 +80,9 @@ async def stage_data(request):
         if "userid" not in request.args and "projectid" not in request.args:
             info = "Bad request. missing parameters"
             status = 400
-        elif store_backend.verify_projectid(request.ctx.userid, request.args["projectid"][0]) is None:
+        elif (
+            store_backend.verify_projectid(request.ctx.userid, request.args["projectid"][0]) is None
+        ):
             info = f"Projectid {request.args['projectid'][0]} not associated with the user"
             status = 400
         elif "current_stage" not in request.json:
@@ -153,7 +164,9 @@ async def revert_stage(request):
                     request.json["to"],
                 )
                 if res:
-                    data = pipe_producer.current_pipe_state(request.ctx.userid, request.args["projectid"][0])
+                    data = pipe_producer.current_pipe_state(
+                        request.ctx.userid, request.args["projectid"][0]
+                    )
                     if data is None:
                         info = "successfully reverted to a previous stage but somehting fatal happened while getting current pipe state"
                         status = 500
@@ -198,17 +211,19 @@ async def unfreeze_pipe(request):
                 info = f"Projectid {request.args['projectid'][0]} not associated with the user"
                 status = 400
             elif pipe_producer.unfreeze_pipe(request.ctx.userid, request.args["projectid"][0]):
-                data = pipe_producer.current_pipe_state(request.ctx.userid, request.args["projectid"][0])
+                data = pipe_producer.current_pipe_state(
+                    request.ctx.userid, request.args["projectid"][0]
+                )
                 if data is None:
-                    info = (
-                        "successfully unfreezed the pipe but something fatal happened while getting  current pipe state"
-                    )
+                    info = "successfully unfreezed the pipe but something fatal happened while getting  current pipe state"
                     status = 500
                 else:
                     data["id"] = request.args["projectid"][0]
                     data["name"] = proj[0]
                     data["timestamp"] = proj[1]
-                    info = f"successfully reset error in the pipe for {request.args['projectid'][0]}"
+                    info = (
+                        f"successfully reset error in the pipe for {request.args['projectid'][0]}"
+                    )
                     status = 200
             else:
                 info = "Bad request. Can not unfreeze pipe."

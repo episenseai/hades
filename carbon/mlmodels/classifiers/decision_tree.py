@@ -1,8 +1,10 @@
+from devtools import debug
 from sklearn.metrics import auc, confusion_matrix, roc_curve
 from sklearn.model_selection import GridSearchCV, train_test_split
 from sklearn.multiclass import OneVsRestClassifier
 from sklearn.preprocessing import label_binarize
 from sklearn.tree import DecisionTreeClassifier
+
 from carbon.mlmodels.utils import (
     convert_cvresults_tolist,
     deliverformattedResultClf,
@@ -14,8 +16,8 @@ from carbon.mlmodels.utils import (
     metricResultMultiClassifier,
     splitTrainTestdataset,
 )
+
 from .confgin import finalconfig1
-from devtools import debug
 
 
 def build(confign):

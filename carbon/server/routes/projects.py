@@ -9,7 +9,11 @@ projects_bp = Blueprint("projects_service", url_prefix="/tab/v1/projects")
 @projects_bp.post("/")
 async def create_project(request):
     try:
-        if "projectname" not in request.json or "projectdesc" not in request.json or "userid" not in request.args:
+        if (
+            "projectname" not in request.json
+            or "projectdesc" not in request.json
+            or "userid" not in request.args
+        ):
             info = "Bad request. missing parameters"
             status = 400
         elif ":" in request.json["projectname"]:
@@ -79,8 +83,12 @@ async def set_project(request):
                 info = f"Projectid {request.args['projectid'][0]} not associated with the user"
                 status = 400
             else:
-                store_backend.set_current_projectid(request.ctx.userid, request.args["projectid"][0])
-                data = pipe_producer.current_pipe_state(request.ctx.userid, request.args["projectid"][0])
+                store_backend.set_current_projectid(
+                    request.ctx.userid, request.args["projectid"][0]
+                )
+                data = pipe_producer.current_pipe_state(
+                    request.ctx.userid, request.args["projectid"][0]
+                )
                 if data is None:
                     info = f"Something unexpected happened while setting the current project to {request.args['projectid'][0]}"
                     status = 500

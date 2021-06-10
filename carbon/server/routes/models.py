@@ -1,8 +1,8 @@
 from typing import Optional
 
+from devtools import debug
 from pydantic.main import BaseModel
 from sanic import Blueprint, response
-from devtools import debug
 
 from ..store import model_producer, pipe_producer, store_backend
 
@@ -23,7 +23,9 @@ async def model_build(request):
                 info = f"Projectid {request.args['projectid'][0]} not associated with the user"
                 status = 400
             else:
-                data = pipe_producer.current_pipe_state(request.ctx.userid, request.args["projectid"][0])
+                data = pipe_producer.current_pipe_state(
+                    request.ctx.userid, request.args["projectid"][0]
+                )
                 if data is None:
                     info = f"Something unexpected happened while getting the model state of {request.args['projectid'][0]} for submitting model build jobs"
                     status = 500
@@ -72,12 +74,16 @@ async def model_build(request):
                                 status = 500
                                 info = f"Something fatal happened while submitting models jobs for {request.args['projectid'][0]}"
                             elif len(models_dict.models_rejected) == len(modelids):
-                                info = "None of the modelids provided were relavant for this project. "
+                                info = (
+                                    "None of the modelids provided were relavant for this project. "
+                                )
                             elif len(models_dict.models_to_ignore) == len(modelids):
-                                info = "None of the modelids have status in [DONE, ERROR, CANCELLED]"
-                            elif (len(models_dict.models_rejected) + len(models_dict.models_to_ignore)) == len(
-                                modelids
-                            ):
+                                info = (
+                                    "None of the modelids have status in [DONE, ERROR, CANCELLED]"
+                                )
+                            elif (
+                                len(models_dict.models_rejected) + len(models_dict.models_to_ignore)
+                            ) == len(modelids):
                                 info = (
                                     "Some of the modelids were irrelavant for the project "
                                     + "and the rest of them do not have status in [DONE, ERROR, CANCELLED]."
@@ -86,7 +92,9 @@ async def model_build(request):
                                 status = 500
                                 info = "Something unknown happended."
                         else:
-                            data = pipe_producer.current_pipe_state(request.ctx.userid, request.args["projectid"][0])
+                            data = pipe_producer.current_pipe_state(
+                                request.ctx.userid, request.args["projectid"][0]
+                            )
                             if data is None:
                                 info = (
                                     "Submitted jobs, but couldn't get current state of the pipeline."
@@ -130,12 +138,16 @@ async def model_results(request):
                 info = f"Projectid {request.args['projectid'][0]} not associated with the user"
                 status = 400
             else:
-                models_list = model_producer.get_models_list(request.ctx.userid, request.args["projectid"][0])
+                models_list = model_producer.get_models_list(
+                    request.ctx.userid, request.args["projectid"][0]
+                )
                 if not models_list:
                     info = "There are no models for this project"
                     status = 400
                 else:
-                    data = model_producer.get_model_data(request.ctx.userid, request.args["projectid"][0], models_list)
+                    data = model_producer.get_model_data(
+                        request.ctx.userid, request.args["projectid"][0], models_list
+                    )
                     # debug(data)
                     info = f"Got models data for the {proj[0]} project"
                     status = 200

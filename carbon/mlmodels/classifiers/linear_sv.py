@@ -48,7 +48,9 @@ def build(confign):
     # plotRoCCurve(catClasses, fpr, tpr, roc_auc)
     roc = deliverRoCResult(catClasses, fpr, tpr, roc_auc)
     return (
-        deliverformattedResultClf(config, catClasses, metricResult, confusion, roc, grid_results=clf_results),
+        deliverformattedResultClf(
+            config, catClasses, metricResult, confusion, roc, grid_results=clf_results
+        ),
         clf_fit,
     )
 

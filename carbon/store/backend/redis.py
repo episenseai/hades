@@ -12,11 +12,11 @@ from collections import namedtuple
 from multiprocessing import Process, Queue
 from pprint import pprint
 from typing import Any, List, Optional, Tuple
-from devtools import debug
-import orjson
 
 import jwt
+import orjson
 import redis
+from devtools import debug
 from pydantic import BaseModel
 
 from ..config import MLModel, classifiers, jobqueue_config, multi_classifiers, regressors
@@ -394,9 +394,13 @@ class RedisTasksConsumer(RedisTasks):
     def xreadgroup(self, consumer_name, nextjob=">"):
         self._item = None
         # print("getting job for ", consumer_name, self.jobq, self.jobq_CG)
-        return self.redis.xreadgroup(self.jobq_CG, consumer_name, {self.jobq: nextjob}, count=1, block=0,)[
-            0
-        ][1]
+        return self.redis.xreadgroup(
+            self.jobq_CG,
+            consumer_name,
+            {self.jobq: nextjob},
+            count=1,
+            block=0,
+        )[0][1]
 
     def get_item(self, consumer_name):
         items = []
@@ -506,7 +510,9 @@ class PipeTasksProducer(RedisTasksProducer):
                 except redis.WatchError as ex:
                     if watch_error_count > 100:
                         print(ex)
-                        raise Exception("Something fatal happened while creating a new project") from ex
+                        raise Exception(
+                            "Something fatal happened while creating a new project"
+                        ) from ex
                     if watch_error_count > 20:
                         time.sleep(0.1)
                     watch_error_count += 1
@@ -540,7 +546,9 @@ class PipeTasksProducer(RedisTasksProducer):
                     break
                 except redis.WatchError as ex:
                     if watch_error_count > 100:
-                        raise Exception("Something fatal happened while creating a new project") from ex
+                        raise Exception(
+                            "Something fatal happened while creating a new project"
+                        ) from ex
                     if watch_error_count > 20:
                         time.sleep(0.1)
                     watch_error_count += 1
@@ -804,7 +812,13 @@ class ModelsTasksProducer(RedisTasksProducer):
         return (models_to_build, modelids_to_reject)
 
     def submit_model_jobs(
-        self, user_id, project_id, optimizeUsing, modelType, modelids: Optional[List[str]] = None, changed_hparams=None
+        self,
+        user_id,
+        project_id,
+        optimizeUsing,
+        modelType,
+        modelids: Optional[List[str]] = None,
+        changed_hparams=None,
     ):  # pylint: disable=unsubscriptable-object
         """
         modelType: one of ["regressor", "classifier", "multi_classifier"]
@@ -846,13 +860,19 @@ class ModelsTasksProducer(RedisTasksProducer):
         # the models are not added to the job_queue
         models_to_ignore: List[MLModel] = []
 
-        models_accepted, modelids_rejected = self.get_model_by_ids([] if not modelids else modelids, modelType)
+        models_accepted, modelids_rejected = self.get_model_by_ids(
+            [] if not modelids else modelids, modelType
+        )
 
         if models_accepted:
             # config data used for model building
-            pipe_result_hashmap = f"{user_id}:{project_id}:{jobqueue_config.pipe_queue}:{jobqueue_config.DB_GEN}"
+            pipe_result_hashmap = (
+                f"{user_id}:{project_id}:{jobqueue_config.pipe_queue}:{jobqueue_config.DB_GEN}"
+            )
             # hashmap to store the pipe results
-            model_result_hashmap = f"{user_id}:{project_id}:{jobqueue_config.models_queue}:{jobqueue_config.DB_GEN}"
+            model_result_hashmap = (
+                f"{user_id}:{project_id}:{jobqueue_config.models_queue}:{jobqueue_config.DB_GEN}"
+            )
             # hashmap to store cancelled jobids
             cancelled_hashmap = f"{user_id}:{project_id}:CANCELLED:{jobqueue_config.DB_GEN}"
 
@@ -969,7 +989,9 @@ class ModelsTasksProducer(RedisTasksProducer):
 
     # returns a dictionary of { modelid: status }
     def get_model_status(self, user_id, project_id):
-        model_result_hashmap = f"{user_id}:{project_id}:{jobqueue_config.models_queue}:{jobqueue_config.DB_GEN}"
+        model_result_hashmap = (
+            f"{user_id}:{project_id}:{jobqueue_config.models_queue}:{jobqueue_config.DB_GEN}"
+        )
         list_of_modelid = self.get_models_list(user_id, project_id)
         return dict(
             zip(
@@ -982,7 +1004,9 @@ class ModelsTasksProducer(RedisTasksProducer):
         )
 
     def cancel_job(self, user_id, project_id, modelid):
-        model_result_hashmap = f"{user_id}:{project_id}:{jobqueue_config.models_queue}:{jobqueue_config.DB_GEN}"
+        model_result_hashmap = (
+            f"{user_id}:{project_id}:{jobqueue_config.models_queue}:{jobqueue_config.DB_GEN}"
+        )
         cancelled_hashmap = f"{user_id}:{project_id}:CANCELLED:{jobqueue_config.DB_GEN}"
         result = None
         with self.redis.pipeline() as pipe:
@@ -1018,7 +1042,9 @@ class ModelsTasksProducer(RedisTasksProducer):
 
     # returns a dictionary of { modelid: data }
     def get_model_data(self, user_id, project_id, list_of_modelid):
-        model_result_hashmap = f"{user_id}:{project_id}:{jobqueue_config.models_queue}:{jobqueue_config.DB_GEN}"
+        model_result_hashmap = (
+            f"{user_id}:{project_id}:{jobqueue_config.models_queue}:{jobqueue_config.DB_GEN}"
+        )
         res = self.redis.hmget(
             model_result_hashmap,
             (
@@ -1233,7 +1259,9 @@ class ModelsTasksConsumer(RedisTasksConsumer):
                     break
                 except redis.WatchError as ex:
                     if error_count > 100:
-                        raise Exception("Something fatal happened while submitting result of model job") from ex
+                        raise Exception(
+                            "Something fatal happened while submitting result of model job"
+                        ) from ex
                     if error_count > 20:
                         time.sleep(0.1)
                     error_count += 1
@@ -1288,7 +1316,11 @@ class ModelsTasksConsumer(RedisTasksConsumer):
                 cancelled_hashmap = cancelled_hashmap = self._item[1]["cancelled_hashmap"]
                 # (result_dict, model_to_pickle) = self.model_func_dict[job["modelid"]](config)
                 (result, error_msg, cancelled, exception) = execute_task(
-                    self.model_func_dict[job["modelid"]], config, self.redis_config_dict, cancelled_hashmap, self.jobid
+                    self.model_func_dict[job["modelid"]],
+                    config,
+                    self.redis_config_dict,
+                    cancelled_hashmap,
+                    self.jobid,
                 )
                 if cancelled:
                     if exception:
@@ -1396,7 +1428,9 @@ class Application:
                 except redis.WatchError as ex:
                     if watch_error_count > 100:
                         print(ex)
-                        raise Exception("Something fatal happened while creating a new user account.") from ex
+                        raise Exception(
+                            "Something fatal happened while creating a new user account."
+                        ) from ex
                     if watch_error_count > 20:
                         time.sleep(0.1)
                     watch_error_count += 1
@@ -1477,7 +1511,9 @@ class Application:
                 except redis.WatchError as ex:
                     if watch_error_count > 100:
                         print(ex)
-                        raise Exception("Something fatal happened while creating a new project") from ex
+                        raise Exception(
+                            "Something fatal happened while creating a new project"
+                        ) from ex
                     if watch_error_count > 20:
                         time.sleep(0.1)
                     watch_error_count += 1
@@ -1492,7 +1528,9 @@ class Application:
         if not projects:
             return projects
         projects = [proj.split(sep=":") for proj in projects]
-        projects_desc = self.redis.hmget(self.projects_desc_hashmap, [f"{p[0]}:{p[1]}" for p in projects])
+        projects_desc = self.redis.hmget(
+            self.projects_desc_hashmap, [f"{p[0]}:{p[1]}" for p in projects]
+        )
         # print(projects_desc)
         projects = [(p + [projects_desc[i]]) for i, p in enumerate(projects)]
         # print(projects)
@@ -1551,7 +1589,9 @@ class Application:
         return sorted(
             (
                 {
-                    "timestamp": datetime.datetime.utcfromtimestamp(int(p[1].split("___", maxsplit=1)[0])).isoformat(),
+                    "timestamp": datetime.datetime.utcfromtimestamp(
+                        int(p[1].split("___", maxsplit=1)[0])
+                    ).isoformat(),
                     "filename": p[1].split("___", maxsplit=1)[1],
                     "filepath": f"{user_id}/{p[1]}",
                 }

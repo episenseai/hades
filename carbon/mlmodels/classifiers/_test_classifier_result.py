@@ -3,14 +3,22 @@ import pandas as pd
 from ..utils import featureListGenerator
 
 featureSet1 = list(
-    featureListGenerator(pd.read_csv("/Users/rajeevranjan/Downloads/pipenv-episense/data/lending_club_loans.csv"))
+    featureListGenerator(
+        pd.read_csv("/Users/rajeevranjan/Downloads/pipenv-episense/data/lending_club_loans.csv")
+    )
 )
 featureSet1.remove("member_id")
 
-featureSet3 = list(featureListGenerator(pd.read_csv("/Users/rajeevranjan/Downloads/pipenv-episense/data/Heart.csv")))
+featureSet3 = list(
+    featureListGenerator(
+        pd.read_csv("/Users/rajeevranjan/Downloads/pipenv-episense/data/Heart.csv")
+    )
+)
 
 featureSet2 = list(
-    featureListGenerator(pd.read_csv("/Users/rajeevranjan/Downloads/pipenv-episense/data/lending_club_loans.csv"))
+    featureListGenerator(
+        pd.read_csv("/Users/rajeevranjan/Downloads/pipenv-episense/data/lending_club_loans.csv")
+    )
 )
 featureSet2.remove("member_id")
 featureSet2.remove("grade")

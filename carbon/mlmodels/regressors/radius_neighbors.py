@@ -46,7 +46,10 @@ def build(confign):
     metricResult = metricResultRegressor(Y_test, Y_pred, Y_score)
     # plotPredictedVsTrueCurve(Y_pred, Y_test, X_test, modelName)
 
-    return deliverformattedResult(config, metricResult, Y_pred, Y_test, grid_results=reg_results), reg_fit
+    return (
+        deliverformattedResult(config, metricResult, Y_pred, Y_test, grid_results=reg_results),
+        reg_fit,
+    )
 
 
 def gridSearchRadiusNeighborsRegressor(X, Y, config):
