@@ -3,7 +3,6 @@ from sklearn.model_selection import GridSearchCV, train_test_split
 from sklearn.multiclass import OneVsRestClassifier
 from sklearn.preprocessing import label_binarize
 from sklearn.tree import DecisionTreeClassifier
-
 from carbon.mlmodels.utils import (
     convert_cvresults_tolist,
     deliverformattedResultClf,
@@ -15,47 +14,28 @@ from carbon.mlmodels.utils import (
     metricResultMultiClassifier,
     splitTrainTestdataset,
 )
-
-# from pprint import pprint
-# from datetime import datetime
 from .confgin import finalconfig1
 from devtools import debug
 
 
 def build(confign):
     config = confign["data"]
-
     finalFeatureListGenerator(config)
     columnType = finaltypeOfColumnUserUpdated(config)
     df, X, Y = loadData(config)
     Y = Y.astype(str)
     catClasses = Y.unique()
-
     # Encode the feature values from strings to numerical values
     X = labelEncodeCategoricalVarToNumbers(X, columnType)
-
     # Make the train test split, default = 75%
     X_train, X_test, Y_train, Y_test = splitTrainTestdataset(X, Y, config)
 
+    possible_param_grid, default_hp_grid = paramlist(confign)
     model_config = confign["hyper_params"]
-
-    possible_param_grid = {
-        "criterion": {"default": "gini", "possible_str": ["gini", "entropy"]},  # [min,max]
-        "splitter": {"default": "best", "possible_str": ["best", "random"]},
-        "max_depth": {"default": None, "possible_int": [1, config["data"]["rows"]]},
-        "min_samples_split": {"default": 2, "possible_int": [2, config["data"]["rows"]]},
-        "min_samples_leaf": {"default": 1, "possible_int": [1, config["data"]["rows"]]},
-        "max_features": {"default": None, "possible_int": [1, config["data"]["includedFeatures"]]},
-        "max_leaf_nodes": {"default": None, "possible_int": [1, config["data"]["rows"]]},
-    }
-    default_hp_grid = {
-        "min_samples_split": [2, 12, 22],  # range(2, 32, 10),
-        "max_features": [2, 12],  # range(2, len(finalFeatureListGenerator(config)), 10),
-    }
     if not model_config:
         model_config = default_hp_grid
 
-    clf_gini, clf_gini_fit, clf_results = gridSearchDecisionTreeClf(X_train, Y_train, config, model_config)
+    clf_gini_fit, clf_results = gridSearchDecisionTreeClf(X_train, Y_train, config, model_config)
 
     if not confign["hp_results"]:
         confign["hp_results"] = [
@@ -66,7 +46,6 @@ def build(confign):
         ]
     else:
         hp_result = {
-            # "modelid": "6bb167c7-fd88-4fc1-8cc9-5005b463a6b4",
             "hp_grid": model_config,
             "result": clf_results,
         }
@@ -138,57 +117,6 @@ def rocCurveforMultiClassDecisionTree(X, Y, catClasses, clfObject):
 
 
 def gridSearchDecisionTreeClf(X, Y, config, model_config=None):
-    debug(model_config)
-
-    """ if not model_config:
-        gsClf = GridSearchCV(
-            DecisionTreeClassifier(criterion="gini", random_state=100),
-            param_grid={
-                "min_samples_split": range(2, 32, 10),
-                "max_features": range(2, len(finalFeatureListGenerator(config)), 10),
-                # "max_depth": range(2, len(finalFeatureListGenerator(config)), 2),
-            },
-            cv=config["data"]["cv"]["folds"],
-            return_train_score=False,
-        )
-        gsClf_fit = gsClf.fit(X, Y)
-        gsclf_results = {
-            "cvresult_list": convert_cvresults_tolist(gsClf_fit.cv_results_),
-            "mean_test_score": gsClf_fit.cv_results_["mean_test_score"].tolist(),
-            "params": gsClf_fit.cv_results_["params"],
-            # gsClf_fit.best_estimator_,
-            "best_score": round(gsClf_fit.best_score_, 2),
-            "best_params": list(zip(gsClf_fit.best_params_.keys(), gsClf_fit.best_params_.values())),
-            "possible_model_params": possible_model_params
-            # "scorer_function": str(gsClf_fit.scorer_),
-            # gsClf_fit.best_index_,
-        }
-
-        # pprint(gsclf_results)
-        gsClf_fit_estimator = gsClf_fit.best_estimator_
-        # print(gsClf_fit.best_params_, gsClf_fit.best_score_)
-        return gsClf, gsClf_fit_estimator, gsclf_results
-    else:
-        # print(model_config)
-        gsClf = GridSearchCV(
-            DecisionTreeClassifier(random_state=100),
-            param_grid=model_config,
-            cv=config["data"]["cv"]["folds"],
-            return_train_score=False,
-        )
-        gsClf_fit = gsClf.fit(X, Y)
-        gsclf_results = {
-            "cvresult_list": convert_cvresults_tolist(gsClf_fit.cv_results_),
-            "mean_test_score": gsClf_fit.cv_results_["mean_test_score"].tolist(),
-            "params": gsClf_fit.cv_results_["params"],
-            # gsClf_fit.best_estimator_,
-            "best_score": round(gsClf_fit.best_score_, 2),
-            "best_params": list(zip(gsClf_fit.best_params_.keys(), gsClf_fit.best_params_.values())),
-            "possible_model_params": possible_model_params
-            # "scorer_function": str(gsClf_fit.scorer_),
-            # gsClf_fit.best_index_,
-        } """
-
     gsClf = GridSearchCV(
         DecisionTreeClassifier(random_state=100),
         param_grid=model_config,
@@ -208,36 +136,27 @@ def gridSearchDecisionTreeClf(X, Y, config, model_config=None):
         # gsClf_fit.best_index_,
     }
 
-    debug(gsclf_results)
+    # debug(gsclf_results)
     gsClf_fit_estimator = gsClf_fit.best_estimator_
     # print(gsClf_fit.best_params_, gsClf_fit.best_score_)
-    return gsClf, gsClf_fit_estimator, gsclf_results
+    return gsClf_fit_estimator, gsclf_results
 
 
-default_hyperparameters = {
-    "criterion": ["gini"],
-    # criterion:{“gini”, “entropy”}, default=”gini”
-    # The function to measure the quality of a split. Supported criteria are “gini” for the Gini impurity and “entropy” for the information gain.
-    "splitter": ["best"],  # splitter:{“best”, “random”}, default=”best”
-    # The strategy used to choose the split at each node. Supported strategies are “best” to choose the best split and “random” to choose the best random split.
-    "max_depth": [None],  # max_depth: int, default=None
-    # The maximum depth of the tree. If None, then nodes are expanded until all leaves are pure or until all leaves contain less than min_samples_split samples.
-    "min_samples_split": [2],  # "min_samples_split":int or float, default=2
-    # The minimum number of samples required to split an internal node:
-    "min_samples_leaf": [1],  # min_samples_leaf: int or float, default=1
-    # The minimum number of samples required to be at a leaf node.
-    # A split point at any depth will only be considered if it leaves at
-    # least min_samples_leaf training samples in each of the left and right branches.
-    "min_weight_fraction_leaf": [0.0],  # min_weight_fraction_leaf: float, default=0.0
-    # The minimum weighted fraction of the sum total of weights (of all the input samples) required to be at a leaf node. Samples have equal weight when sample_weight is not provided.
-    "max_features": [None],  # max_features: int, float or {“auto”, “sqrt”, “log2”}, default=None
-    # The number of features to consider when looking for the best split:
-    "max_leaf_nodes": [None],  # max_leaf_nodes: int, default=None
-    # Grow a tree with max_leaf_nodes in best-first fashion. Best nodes are defined as relative reduction in impurity. If None then unlimited number of leaf nodes.
-}
-model_config1 = default_hyperparameters
-model_config1["criterion"] = ["gini", "entropy"]
-model_config1["max_features"] = range(10, finalconfig1["data"]["data"]["includedFeatures"], 10)  # type: ignore
-model_config1["min_samples_split"] = range(2, 32, 10)
-
-# build(finalconfig1, model_config=model_config1)
+def paramlist(confign):
+    config = confign["data"]
+    possible_param_grid = {
+        "criterion": {"default": "gini", "possible_str": ["gini", "entropy"]},  # [min,max]
+        "splitter": {"default": "best", "possible_str": ["best", "random"]},
+        "max_depth": {"default": None, "possible_int": [1, config["data"]["rows"]]},
+        "min_samples_split": {"default": 2, "possible_int": [2, config["data"]["rows"]]},
+        "min_samples_leaf": {"default": 1, "possible_int": [1, config["data"]["rows"]]},
+        "max_features": {"default": None, "possible_int": [1, config["data"]["includedFeatures"]]},
+        "max_leaf_nodes": {"default": None, "possible_int": [1, config["data"]["rows"]]},
+    }
+    hp_list1 = range(2, 32, 10)
+    hp_list2 = range(2, len(finalFeatureListGenerator(config)), 10)
+    default_hp_grid = {
+        "min_samples_split": [2, 12, 22],  # range(2, 32, 10),
+        "max_features": [2, 12],  # range(2, len(finalFeatureListGenerator(config)), 10),
+    }
+    return (possible_param_grid, default_hp_grid)

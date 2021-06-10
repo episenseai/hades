@@ -1132,7 +1132,7 @@ class ModelsTasksConsumer(RedisTasksConsumer):
                                 f"{self._item[1]['modelid']}:DATA",
                             )
                             ret = pipe.execute()
-                            debug("************Result********:", ret[3])
+                            # debug("************Result********:", ret[3])
                             if not ret[3]:
                                 model_result = {}
                             else:
