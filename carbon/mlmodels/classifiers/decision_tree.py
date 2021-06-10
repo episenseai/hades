@@ -157,7 +157,7 @@ def paramlist(confign):
     }
 
     default_hp_grid = {
-        "min_samples_split": [2, 12, 22],  # range(2, 32, 10),
-        "max_features": [2, 12],  # range(2, len(finalFeatureListGenerator(config)), 10),
+        "min_samples_split": list(range(2, 32, 10)),
+        "max_features": list(range(2, len(finalFeatureListGenerator(config)), 10)),
     }
     return (possible_param_grid, default_hp_grid)

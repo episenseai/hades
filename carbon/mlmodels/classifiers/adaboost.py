@@ -107,9 +107,9 @@ def paramlist(confign):
     possible_param_grid = {
         "n_estimators": {
             "default": 50,
-            "possible_list": [50, 100, 150, 200, 250, 300, 350, 400, 450, 500],
+            "possible_list": list(range(50, 500, 50)),
         },  # [min,max]
-        "learning_rate": {"default": 1, "possible_float": [0.5, 5]},
+        "learning_rate": {"default": 1, "possible_list": [0.5, 0.75, 1, 1.25, 1.5, 2]},
         "algorithm": {"default": "SAMME.R", "possible_str": ["SAMME", "SAMME.R"]},
     }
     default_hp_grid = {"n_estimators": [50, 100], "learning_rate": [0.1, 1, 2]}
