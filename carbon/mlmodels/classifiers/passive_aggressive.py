@@ -17,10 +17,6 @@ from carbon.mlmodels.utils import (
     splitTrainTestdataset,
 )
 
-# from pprint import pprint
-# from datetime import datetime
-# from Models.config import config1, config2, config4
-
 
 def build(confign):
     config = confign["data"]
@@ -34,9 +30,26 @@ def build(confign):
     # Make the train test split, default = 75%
     X_train, X_test, Y_train, Y_test = splitTrainTestdataset(X, Y, config)
 
-    # print("start", datetime.now())
-    clf, clf_fit, clf_results = gridSearchPassiveAggressiveClf(X_train, Y_train, config)
-    # print("end", datetime.now())
+    possible_param_grid, default_hp_grid = paramlist(confign)
+    model_config = confign["hyper_params"]
+    if not model_config:
+        model_config = default_hp_grid
+
+    clf_fit, clf_results = gridSearchPassiveAggressiveClf(X_train, Y_train, config, model_config)
+
+    if not confign["hp_results"]:
+        confign["hp_results"] = [
+            {
+                "hp_grid": model_config,
+                "result": clf_results,
+            },
+        ]
+    else:
+        hp_result = {
+            "hp_grid": model_config,
+            "result": clf_results,
+        }
+        confign["hp_results"].append(hp_result)
 
     # Plot of a ROC curve for a specific class
     fpr, tpr, roc_auc, Y_pred, Y_score = rocCurveforClassDecisionFunction(
@@ -48,13 +61,20 @@ def build(confign):
     roc = deliverRoCResult(catClasses, fpr, tpr, roc_auc)
     return (
         deliverformattedResultClf(
-            config, catClasses, metricResult, confusion, roc, grid_results=clf_results
+            config,
+            catClasses,
+            metricResult,
+            confusion,
+            roc,
+            grid_results=clf_results,
+            hp_results=confign["hp_results"],
+            possible_model_params=possible_param_grid,
         ),
         clf_fit,
     )
 
 
-def gridSearchPassiveAggressiveClf(X, Y, config):
+def gridSearchPassiveAggressiveClf(X, Y, config, model_config=None):
 
     steps = [
         ("scalar", StandardScaler()),
@@ -68,7 +88,7 @@ def gridSearchPassiveAggressiveClf(X, Y, config):
     make_pipeline = Pipeline(steps)
     gsClf = GridSearchCV(
         make_pipeline,
-        param_grid={"clf__C": [0.1, 1, 10]},
+        param_grid=model_config,
         cv=config["data"]["cv"]["folds"],
     )
     gsClf_fit = gsClf.fit(X, Y)
@@ -83,7 +103,22 @@ def gridSearchPassiveAggressiveClf(X, Y, config):
         # "scorer_function": str(gsClf_fit.scorer_),
         # gsClf_fit.best_index_,
     }
-    return gsClf, gsClf_fit_estimator, gsclf_results
+    return gsClf_fit_estimator, gsclf_results
 
 
-# pprint(build_model(config1))
+def paramlist(confign):
+    config = confign["data"]
+    possible_param_grid = {
+        "clf__C": {
+            "default": 1.0,
+            "possible_list": [0.01, 0.1, 1, 10, 100],
+        },
+        "clf__max_iter": {
+            "default": 1000,
+            "possible_list": [1000, 10000],
+        },
+        "clf__warm_start": {"default": False, "possible_str": [True, False]},
+        "clf__loss": {"default": "hinge", "possible_str": ["hinge", "string"]},
+    }
+    default_hp_grid = {"clf__C": [0.1, 1, 10], "clf__max_iter": [1000, 10000]}
+    return (possible_param_grid, default_hp_grid)
