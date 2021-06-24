@@ -13,10 +13,6 @@ from carbon.mlmodels.utils import (
     splitTrainTestdataset,
 )
 
-# from Models.config import config1, config2, config3
-# from datetime import datetime
-# from pprint import pprint
-
 
 def build(confign):
     config = confign["data"]
@@ -29,9 +25,26 @@ def build(confign):
     # Make the train test split, default = 75%
     X_train, X_test, Y_train, Y_test = splitTrainTestdataset(X, Y, config)
 
-    # print("start", datetime.now())
-    reg, reg_fit, reg_results = gridSearchNuSVRegressor(X_train, Y_train, config)
-    # print("end", datetime.now())
+    possible_param_grid, default_hp_grid = paramlist(confign)
+    model_config = confign["hyper_params"]
+    if not model_config:
+        model_config = default_hp_grid
+
+    reg_fit, reg_results = gridSearchNuSVRegressor(X_train, Y_train, config, model_config)
+
+    if not confign["hp_results"]:
+        confign["hp_results"] = [
+            {
+                "hp_grid": model_config,
+                "result": reg_results,
+            },
+        ]
+    else:
+        hp_result = {
+            "hp_grid": model_config,
+            "result": reg_results,
+        }
+        confign["hp_results"].append(hp_result)
 
     # print(reg.best_params_, reg.best_score_)
     # print(reg_fit["feature_selection"].get_support())
@@ -44,12 +57,20 @@ def build(confign):
     # plotPredictedVsTrueCurve(Y_pred, Y_test, X_test, modelName)
 
     return (
-        deliverformattedResult(config, metricResult, Y_pred, Y_test, grid_results=reg_results),
+        deliverformattedResult(
+            config,
+            metricResult,
+            Y_pred,
+            Y_test,
+            grid_results=reg_results,
+            hp_results=confign["hp_results"],
+            possible_model_params=possible_param_grid,
+        ),
         reg_fit,
     )
 
 
-def gridSearchNuSVRegressor(X, Y, config):
+def gridSearchNuSVRegressor(X, Y, config, model_config=None):
     steps = [
         # ("feature_selection", SelectFromModel(LassoCV(), "median")),
         # ("feature_map_Nystroem", Nystroem(n_components=5000)),
@@ -58,7 +79,7 @@ def gridSearchNuSVRegressor(X, Y, config):
     make_pipeline = Pipeline(steps)
     gsreg = GridSearchCV(
         make_pipeline,
-        param_grid={"reg__C": [0.1, 1, 10], "reg__gamma": ["auto", "scale"]},
+        param_grid=model_config,
         cv=config["data"]["cv"]["folds"],
     )
     gsreg_fit = gsreg.fit(X, Y)
@@ -73,7 +94,24 @@ def gridSearchNuSVRegressor(X, Y, config):
         # "scorer_function": str(gsClf_fit.scorer_),
         # gsClf_fit.best_index_,
     }
-    return gsreg, gsreg_fit_estimator, gsreg_results
+    return gsreg_fit_estimator, gsreg_results
 
 
-# pprint(build_model(config3))
+def paramlist(confign):
+    config = confign["data"]
+    possible_param_grid = {
+        "reg__nu": {
+            "default": 0.5,
+            "possible_float": [0.01, 1],
+        },
+        "reg__C": {
+            "default": 1.0,
+            "possible_list": [0.01, 0.1, 1, 10],
+        },
+        "reg__gamma": {
+            "default": "scale",
+            "possible_str": ["scale", "auto"],
+        },
+    }
+    default_hp_grid = {"reg__C": [0.1, 1, 10], "reg__gamma": ["auto", "scale"]}
+    return (possible_param_grid, default_hp_grid)
