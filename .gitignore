@@ -1,6 +1,4 @@
-notebooks
-build_models
-file_uploads
+bucket
 .vscode
 .code-workspace
 .vim

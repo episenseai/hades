@@ -1,10 +1,10 @@
 from ..store.backend.redis import Application, ModelsTasksProducer, PipeTasksProducer
-from .config import server_config
+from .env import env
 
 # get redis host, port, and db from Conf object
 
-pipe_producer = PipeTasksProducer(server_config.redis.dict())
+pipe_producer = PipeTasksProducer(env().redis_config)
 
-model_producer = ModelsTasksProducer(server_config.redis.dict())
+model_producer = ModelsTasksProducer(env().redis_config)
 
-store_backend = Application(server_config.redis.dict())
+store_backend = Application(env().redis_config)

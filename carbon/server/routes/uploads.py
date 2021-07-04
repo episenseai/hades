@@ -2,7 +2,7 @@ import os
 
 from sanic import Blueprint, response
 
-from ..config import server_config
+from ..env import env
 from ..store import store_backend
 
 uploads_bp = Blueprint("uploads_service", url_prefix="/uploads")
@@ -48,11 +48,11 @@ async def signup(request):
 
 
 def one_shot_upload(folder_name, file_name, content):
-    sink = f"{server_config.jobs.uploads_folder}/{folder_name}/{file_name}"
+    sink = f"{env().UPLOADS_VOLUME}/{folder_name}/{file_name}"
     # print("source ", sink)
     try:
         try:
-            os.mkdir(f"{server_config.jobs.uploads_folder}/{folder_name}")
+            os.mkdir(f"{env().UPLOADS_VOLUME}/{folder_name}")
         except FileExistsError:
             pass
 

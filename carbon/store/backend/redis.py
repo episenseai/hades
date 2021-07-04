@@ -2,7 +2,6 @@ import base64
 import datetime
 import gzip
 import hashlib
-import json
 import os
 import pickle
 import time
@@ -10,7 +9,6 @@ import traceback
 import uuid
 from collections import namedtuple
 from multiprocessing import Process, Queue
-from pprint import pprint
 from typing import Any, List, Optional, Tuple
 
 import jwt
@@ -72,9 +70,9 @@ def main_task_wrapper(func, arg, result_queue: Queue):
         result_queue.put(TaskResult(exception=(ex, tb)), block=True, timeout=120)
 
 
-def status_task_wrapper(result_queue: Queue, redis_config_dict, cancelled_hashmap, jobid):
+def status_task_wrapper(result_queue: Queue, redis_config, cancelled_hashmap, jobid):
     try:
-        pool = redis.Redis(connection_pool=redis.ConnectionPool(**redis_config_dict))
+        pool = redis.Redis(connection_pool=redis.ConnectionPool(**redis_config))
         while True:
             cancelled_status = int(pool.hget(cancelled_hashmap, jobid))  # type: ignore
             if cancelled_status != 0:
@@ -138,7 +136,7 @@ def execute_task(func, arg, redis_config, cancelled_hashmap, jobid):
 
 
 class RedisTasks:
-    def __init__(self, redis_config_dict, queue):
+    def __init__(self, redis_config: dict, queue):
         """
         pool: redis ConnectionPool
         queue: one of:
@@ -146,13 +144,12 @@ class RedisTasks:
             "models" -> individual model build jobs
         """
 
-        self.redis_config_dict = redis_config_dict
-        self.redis = redis.Redis(connection_pool=redis.ConnectionPool(**redis_config_dict))
+        self.redis_config = redis_config
+        self.redis = redis.Redis(**redis_config)
         self.jobq = f"{queue}:{jobqueue_config.DB_GEN}"
         self.jobq_CG = f"CG:{self.jobq}"
         self.deadq = f"dead.{queue}:{jobqueue_config.DB_GEN}"
         self.deadq_CG = f"CG:{self.deadq}"
-        # print("instantiating......", self.jobq, self.jobq_CG)
 
         # check if we are able to talk to redis
         assert self.redis.ping(), "Can not Ping redis server"
@@ -380,8 +377,8 @@ class RedisTasksProducer(RedisTasks):
 
 
 class RedisTasksConsumer(RedisTasks):
-    def __init__(self, redis_config_dict, queue):
-        super().__init__(redis_config_dict, queue)
+    def __init__(self, redis_config, queue):
+        super().__init__(redis_config, queue)
         self._item = None
         self.pending_jobs = True
 
@@ -420,9 +417,9 @@ class RedisTasksConsumer(RedisTasks):
 
 
 class PipeTasksProducer(RedisTasksProducer):
-    def __init__(self, redis_config_dict):
+    def __init__(self, redis_config):
         # print("instantiating pipe producer ....")
-        super().__init__(redis_config_dict, "pipe")
+        super().__init__(redis_config, "pipe")
         lua_job_submit = """
             local jobid =  redis.call('xadd', KEYS[1], '*', 'stage', KEYS[2], 'result_hashmap', KEYS[3])
             local res1 = redis.call('hset', KEYS[3], KEYS[2], ARGV[1])
@@ -609,7 +606,7 @@ class PipeTasksConsumer(RedisTasksConsumer):
         "build:POST": "finalconfig:GET",
     }
 
-    def __init__(self, redis_config_dict, func_dict):
+    def __init__(self, redis_config, func_dict):
         """
         params:
             pool: RedisConnectionPool
@@ -629,7 +626,7 @@ class PipeTasksConsumer(RedisTasksConsumer):
                 ex: consumer_func(stage_data, file_name) -> config_next_stage
         """
         # print("instantiating pipe task consumer......")
-        super().__init__(redis_config_dict, jobqueue_config.pipe_queue)
+        super().__init__(redis_config, jobqueue_config.pipe_queue)
         self.stage_data = {}
         self.func_dict = func_dict
 
@@ -774,9 +771,9 @@ class ModelsTasksProducer(RedisTasksProducer):
     current_stage = "finalconfig:GET"
     models_sorted_set = jobqueue_config.MODELS_SORTED_SET
 
-    def __init__(self, redis_config_dict):
+    def __init__(self, redis_config):
         # print("instantiating modle task producer.....")
-        super().__init__(redis_config_dict, jobqueue_config.models_queue)
+        super().__init__(redis_config, jobqueue_config.models_queue)
         lua_modeljob_submit = """
             local jobid =  redis.call('xadd', KEYS[1], '*', KEYS[2], KEYS[3], KEYS[4], KEYS[5], KEYS[6], KEYS[7], KEYS[8], KEYS[9], KEYS[10], KEYS[11], KEYS[12], KEYS[13], KEYS[14], KEYS[15], KEYS[16], KEYS[17])
             local res1 = redis.call('hset', KEYS[15], KEYS[18], jobid)
@@ -1106,9 +1103,9 @@ class ModelsTasksConsumer(RedisTasksConsumer):
         modelid:PICKLE -> path to pickled model
     """
 
-    def __init__(self, redis_config_dict, model_func_dict):
+    def __init__(self, redis_config, model_func_dict):
         # print("instantiating models task consumer......")
-        super().__init__(redis_config_dict, jobqueue_config.models_queue)
+        super().__init__(redis_config, jobqueue_config.models_queue)
         self.model_func_dict = model_func_dict
 
     def pull_job(self, consumer_name):
@@ -1318,7 +1315,7 @@ class ModelsTasksConsumer(RedisTasksConsumer):
                 (result, error_msg, cancelled, exception) = execute_task(
                     self.model_func_dict[job["modelid"]],
                     config,
-                    self.redis_config_dict,
+                    self.redis_config,
                     cancelled_hashmap,
                     self.jobid,
                 )
@@ -1372,7 +1369,7 @@ User = namedtuple("User", ["id", "password"])
 
 
 class Application:
-    def __init__(self, redis_config_dict):
+    def __init__(self, redis_config):
         """
         pool: redis ConnectionPool
         users_hashmap:s
@@ -1389,8 +1386,8 @@ class Application:
         uploads_set (sorted set), lexicographical queries
             0 user_id:{timestamp}__{filename}
         """
-        self.redis_config_dict = redis_config_dict
-        self.redis = redis.Redis(connection_pool=redis.ConnectionPool(**redis_config_dict))
+        self.redis_config = redis_config
+        self.redis = redis.Redis(connection_pool=redis.ConnectionPool(**redis_config))
         self.users_hashmap = jobqueue_config.USERS_HASHMAP
         self.users_set = jobqueue_config.USERS_SET
         self.users_id = jobqueue_config.USERS_ID

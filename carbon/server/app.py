@@ -4,11 +4,10 @@ from sanic import Sanic, response
 from sanic.exceptions import NotFound
 from sanic_cors import CORS
 
-from .config import server_config
+from .env import env
 from .routes import root_bp
 from .routes.sse import check_sse_token
 from .store import store_backend
-from .utils import printBox
 
 app = Sanic("episense_backend_app")
 app.blueprint(root_bp)
@@ -16,8 +15,8 @@ app.blueprint(root_bp)
 ### CORS setting
 CORS(
     app,
-    resources={r"/*": {"origins": server_config.app.CORS_origins}},
-    methods=server_config.app.CORS_methods,
+    resources={r"/*": {"origins": env().cors_origins}},
+    methods=env().cors_methods,
     automatic_options=True,
     supports_credentials=True,
 )
@@ -29,7 +28,7 @@ async def cors_halt_request(request):
     if request.path != "/checks/health":
         if "origin" not in request.headers:
             return response.json({}, status=404)
-        if request.headers["origin"] not in server_config.app.CORS_origins:
+        if request.headers["origin"] not in env().cors_origins:
             return response.json({}, status=403)
 
 
@@ -109,11 +108,11 @@ async def authorization(request):
 @app.listener("before_server_start")
 async def beforeStart(_app, _loop):
     try:
-        os.mkdir(f"{server_config.jobs.uploads_folder}")
+        os.mkdir(f"{env().UPLOADS_VOLUME}")
     except FileExistsError:
         pass
     try:
-        os.mkdir(f"{server_config.jobs.models_folder}")
+        os.mkdir(f"{env().MODELS_VOLUME}")
     except FileExistsError:
         pass
 
