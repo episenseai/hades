@@ -63,6 +63,9 @@ reportUnboundVariable = "none"
 reportMissingImports = true
 reportMissingTypeStubs = false
 reportGeneralTypeIssues = "none"
+reportOptionalSubscript = false
+reportOptionalIterable = false
+reportOptionalOperand = false
 
 executionEnvironments = [
   { root = "./", extraPaths = ["hades"], exclude = [".venv", "**/__pycache__", "**/node_modules", "target"] }

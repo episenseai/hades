@@ -17,7 +17,7 @@ import redis
 from devtools import debug
 from pydantic import BaseModel
 
-from ..config import MLModel, classifiers, jobqueue_config, multi_classifiers, regressors
+from ..config import MLModel, classifiers, jobq_setting, multi_classifiers, regressors
 
 seq = [
     "consume:GET",
@@ -146,9 +146,9 @@ class RedisTasks:
 
         self.redis_config = redis_config
         self.redis = redis.Redis(**redis_config)
-        self.jobq = f"{queue}:{jobqueue_config.DB_GEN}"
+        self.jobq = f"{queue}:{jobq_setting.DB_GEN}"
         self.jobq_CG = f"CG:{self.jobq}"
-        self.deadq = f"dead.{queue}:{jobqueue_config.DB_GEN}"
+        self.deadq = f"dead.{queue}:{jobq_setting.DB_GEN}"
         self.deadq_CG = f"CG:{self.deadq}"
 
         # check if we are able to talk to redis
@@ -626,7 +626,7 @@ class PipeTasksConsumer(RedisTasksConsumer):
                 ex: consumer_func(stage_data, file_name) -> config_next_stage
         """
         # print("instantiating pipe task consumer......")
-        super().__init__(redis_config, jobqueue_config.pipe_queue)
+        super().__init__(redis_config, jobq_setting.PIPE_QUEUE)
         self.stage_data = {}
         self.func_dict = func_dict
 
@@ -769,11 +769,11 @@ class PipeTasksConsumer(RedisTasksConsumer):
 
 class ModelsTasksProducer(RedisTasksProducer):
     current_stage = "finalconfig:GET"
-    models_sorted_set = jobqueue_config.MODELS_SORTED_SET
+    models_sorted_set = jobq_setting.MODELS_SORTED_SET
 
     def __init__(self, redis_config):
         # print("instantiating modle task producer.....")
-        super().__init__(redis_config, jobqueue_config.models_queue)
+        super().__init__(redis_config, jobq_setting.MODELS_QUEUE)
         lua_modeljob_submit = """
             local jobid =  redis.call('xadd', KEYS[1], '*', KEYS[2], KEYS[3], KEYS[4], KEYS[5], KEYS[6], KEYS[7], KEYS[8], KEYS[9], KEYS[10], KEYS[11], KEYS[12], KEYS[13], KEYS[14], KEYS[15], KEYS[16], KEYS[17])
             local res1 = redis.call('hset', KEYS[15], KEYS[18], jobid)
@@ -864,14 +864,14 @@ class ModelsTasksProducer(RedisTasksProducer):
         if models_accepted:
             # config data used for model building
             pipe_result_hashmap = (
-                f"{user_id}:{project_id}:{jobqueue_config.pipe_queue}:{jobqueue_config.DB_GEN}"
+                f"{user_id}:{project_id}:{jobq_setting.PIPE_QUEUE}:{jobq_setting.DB_GEN}"
             )
             # hashmap to store the pipe results
             model_result_hashmap = (
-                f"{user_id}:{project_id}:{jobqueue_config.models_queue}:{jobqueue_config.DB_GEN}"
+                f"{user_id}:{project_id}:{jobq_setting.MODELS_QUEUE}:{jobq_setting.DB_GEN}"
             )
             # hashmap to store cancelled jobids
-            cancelled_hashmap = f"{user_id}:{project_id}:CANCELLED:{jobqueue_config.DB_GEN}"
+            cancelled_hashmap = f"{user_id}:{project_id}:CANCELLED:{jobq_setting.DB_GEN}"
 
             with self.redis.pipeline() as pipe:
                 watch_error_count = 0
@@ -987,7 +987,7 @@ class ModelsTasksProducer(RedisTasksProducer):
     # returns a dictionary of { modelid: status }
     def get_model_status(self, user_id, project_id):
         model_result_hashmap = (
-            f"{user_id}:{project_id}:{jobqueue_config.models_queue}:{jobqueue_config.DB_GEN}"
+            f"{user_id}:{project_id}:{jobq_setting.MODELS_QUEUE}:{jobq_setting.DB_GEN}"
         )
         list_of_modelid = self.get_models_list(user_id, project_id)
         return dict(
@@ -1002,9 +1002,9 @@ class ModelsTasksProducer(RedisTasksProducer):
 
     def cancel_job(self, user_id, project_id, modelid):
         model_result_hashmap = (
-            f"{user_id}:{project_id}:{jobqueue_config.models_queue}:{jobqueue_config.DB_GEN}"
+            f"{user_id}:{project_id}:{jobq_setting.MODELS_QUEUE}:{jobq_setting.DB_GEN}"
         )
-        cancelled_hashmap = f"{user_id}:{project_id}:CANCELLED:{jobqueue_config.DB_GEN}"
+        cancelled_hashmap = f"{user_id}:{project_id}:CANCELLED:{jobq_setting.DB_GEN}"
         result = None
         with self.redis.pipeline() as pipe:
             watch_error_count = 0
@@ -1040,7 +1040,7 @@ class ModelsTasksProducer(RedisTasksProducer):
     # returns a dictionary of { modelid: data }
     def get_model_data(self, user_id, project_id, list_of_modelid):
         model_result_hashmap = (
-            f"{user_id}:{project_id}:{jobqueue_config.models_queue}:{jobqueue_config.DB_GEN}"
+            f"{user_id}:{project_id}:{jobq_setting.MODELS_QUEUE}:{jobq_setting.DB_GEN}"
         )
         res = self.redis.hmget(
             model_result_hashmap,
@@ -1103,10 +1103,13 @@ class ModelsTasksConsumer(RedisTasksConsumer):
         modelid:PICKLE -> path to pickled model
     """
 
-    def __init__(self, redis_config, model_func_dict):
-        # print("instantiating models task consumer......")
-        super().__init__(redis_config, jobqueue_config.models_queue)
-        self.model_func_dict = model_func_dict
+    def __init__(self, redis_config, model_function_table, save_pickled_model, pickle_config):
+        super().__init__(redis_config, jobq_setting.MODELS_QUEUE)
+        self.model_function_table = model_function_table
+        # function to execute for saving pickled model
+        self.save_pickled_model = save_pickled_model
+        # contains the folder where the model is to be saved
+        self.pickle_config = pickle_config
 
     def pull_job(self, consumer_name):
         while True:
@@ -1265,23 +1268,14 @@ class ModelsTasksConsumer(RedisTasksConsumer):
                     continue
 
     def pickle_model(self, folder_name, file_path, model_to_pickle):
-        path = f"{jobqueue_config.models_folder}/{file_path}"
         try:
-            zipped = self.pickle_gzip(model_to_pickle)
-            try:
-                os.mkdir(f"{jobqueue_config.models_folder}/{folder_name}")
-            except FileExistsError:
-                # print("folder already exists")
-                pass
-
-            with open(path, mode="wb") as sinkfd:
-                sinkfd.write(zipped)
-            return True
+            zipped_pickled_bytes = self.pickle_gzip(model_to_pickle)
+            return self.save_pickled_model(
+                self.pickle_config["MODELS_VOLUME"], folder_name, file_path, zipped_pickled_bytes
+            )
         except Exception as ex:
             print(traceback.format_exc())
             print(ex)
-            if os.path.isfile(file_path):
-                os.remove(file_path)
             return False
 
     def run(self, consumer_name):
@@ -1313,7 +1307,7 @@ class ModelsTasksConsumer(RedisTasksConsumer):
                 cancelled_hashmap = cancelled_hashmap = self._item[1]["cancelled_hashmap"]
                 # (result_dict, model_to_pickle) = self.model_func_dict[job["modelid"]](config)
                 (result, error_msg, cancelled, exception) = execute_task(
-                    self.model_func_dict[job["modelid"]],
+                    self.model_function_table[job["modelid"]],
                     config,
                     self.redis_config,
                     cancelled_hashmap,
@@ -1388,13 +1382,13 @@ class Application:
         """
         self.redis_config = redis_config
         self.redis = redis.Redis(connection_pool=redis.ConnectionPool(**redis_config))
-        self.users_hashmap = jobqueue_config.USERS_HASHMAP
-        self.users_set = jobqueue_config.USERS_SET
-        self.users_id = jobqueue_config.USERS_ID
-        self.projects_set = jobqueue_config.PROJECTS_SORTED_SET
-        self.current_project = jobqueue_config.CURRENT_PROJECT
-        self.uploads_set = jobqueue_config.UPLOADS_SORTED_SET
-        self.projects_desc_hashmap = jobqueue_config.PROJECTS_DESC_HASHMAP
+        self.users_hashmap = jobq_setting.USERS_HASHMAP
+        self.users_set = jobq_setting.USERS_SET
+        self.users_id = jobq_setting.USERS_ID
+        self.projects_set = jobq_setting.PROJECTS_SORTED_SET
+        self.current_project = jobq_setting.CURRENT_PROJECT
+        self.uploads_set = jobq_setting.UPLOADS_SORTED_SET
+        self.projects_desc_hashmap = jobq_setting.PROJECTS_DESC_HASHMAP
         # check if we are able to talk to redis
         assert self.redis.ping(), "Can not Ping redis server"
 
@@ -1458,11 +1452,14 @@ class Application:
     # stateles authentication using JWT
     # issue a token when the user logs in
     def issue_jwt(self, user_name, password):
+        # do not hardcode these values
+        jwt_tok = "f2fea1ed-b40c-40a3-94e6-698360c22de7"
+
         user_id = self.verify_user(user_name, password)
         payload = {"username": user_name, "userid": user_id}
         if user_id:
             try:
-                return jwt.encode(payload, jobqueue_config.jwt, algorithm="HS256")
+                return jwt.encode(payload, jwt_tok, algorithm="HS256")
             except Exception as ex:
                 print("Error issue_jwt => ", ex)
         return None
@@ -1471,8 +1468,11 @@ class Application:
     # if the token is valid then user is verified
     @staticmethod
     def verify_jwt(encoded_jwt):
+        # do not hardcode these values
+        jwt_tok = "f2fea1ed-b40c-40a3-94e6-698360c22de7"
+
         try:
-            return jwt.decode(encoded_jwt, jobqueue_config.jwt, algorithms="HS256")
+            return jwt.decode(encoded_jwt, jwt_tok, algorithms="HS256")
         except Exception:
             pass
         return None

@@ -41,6 +41,32 @@ models_function_table = {
     "a10dd9dc-cda3-4aa5-b9f3-ac6d26140bd1": theilsen.build,
 }
 
+
+# `file_path` includes the `folder_name` prefix
+def save_pickled_model(self, folder_prefix, folder_name, file_path, bytes_blob) -> bool:
+    path = f"{folder_prefix}/{file_path}"
+    try:
+        zipped = self.pickle_gzip(bytes_blob)
+        try:
+            import os
+
+            os.mkdir(f"{folder_prefix}/{folder_name}")
+        except FileExistsError:
+            pass
+
+        with open(path, mode="wb") as sinkfd:
+            sinkfd.write(zipped)
+        return True
+    except Exception as ex:
+        import traceback
+
+        print(traceback.format_exc())
+        print(ex)
+        if os.path.isfile(path):
+            os.remove(path)
+        return False
+
+
 ps = []
 
 
@@ -49,7 +75,11 @@ def run_worker(worker):
 
     warnings.simplefilter("ignore")
 
-    consumer = ModelsTasksConsumer(env().redis_config, models_function_table)
+    pickle_config = {"MODELS_VOLUME": env().MODELS_VOLUME}
+
+    consumer = ModelsTasksConsumer(
+        env().redis_config, models_function_table, save_pickled_model, pickle_config
+    )
     try:
         consumer.run(worker)
     except Exception as ex:

@@ -14,6 +14,7 @@ class Settings(BaseSettings):
     REDIS_DATABASE_NUMBER: int = 3
 
     UPLOADS_VOLUME: str = "./bucket/uploads"
+    MODELS_VOLUME: str = "./bucket/models"
     TMP_VOLUME: str = "./bucket/mlmodels/tmp"
 
     NUM_WORKERS: PositiveInt = 1

@@ -1,11 +1,10 @@
+import pathlib
 from pathlib import Path
 from typing import List, Optional
 
 from pydantic import BaseModel
 
-regressors_path = Path("configs/store/regressor_models.json")
-classifiers_path = Path("configs/store/classifier_models.json")
-multi_classifiers_path = Path("configs/store/multi_classifier_models.json")
+file_dir = pathlib.Path(__file__).parent.resolve()
 
 
 class MLModel(BaseModel):
@@ -19,26 +18,21 @@ class RegressorModels(BaseModel):
     models: List[MLModel]
 
 
-regressors = RegressorModels.parse_file(regressors_path)
+regressors = RegressorModels.parse_file(file_dir / "regressor_models.json")
 
 
 class ClassifierModels(BaseModel):
     models: List[MLModel]
 
 
-classifiers = ClassifierModels.parse_file(classifiers_path)
+classifiers = ClassifierModels.parse_file(file_dir / "classifier_models.json")
 
 
 class MultiClassifierModels(BaseModel):
     models: List[MLModel]
 
 
-multi_classifiers = MultiClassifierModels.parse_file(classifiers_path)
-# debug(regressors)
-# debug(classifiers)
-# debug(multi_classifiers)
-
-jobqueue_path = Path("configs/store/queue.json")
+multi_classifiers = MultiClassifierModels.parse_file(file_dir / "multi_classifier_models.json")
 
 
 class JobQueueConfig(BaseModel):
@@ -51,14 +45,8 @@ class JobQueueConfig(BaseModel):
     PROJECTS_DESC_HASHMAP: str
     MODELS_SORTED_SET: str
     DB_GEN: int
-    TEST_USER_ID: str
-    TEST_PROJ_ID: str
-    pipe_queue: str
-    models_queue: str
-    jwt: str
-    models_folder: str
-    uploads_folder: str
+    PIPE_QUEUE: str
+    MODELS_QUEUE: str
 
 
-jobqueue_config = JobQueueConfig.parse_file(jobqueue_path)
-# debug(jobqueue_config)
+jobq_setting = JobQueueConfig.parse_file(file_dir / "queue.json")
