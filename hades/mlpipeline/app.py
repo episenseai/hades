@@ -1,42 +1,38 @@
 from multiprocessing import Process
 
 from ..store.backend.redis import PipeTasksConsumer
-from .config import mlpipeline_config
+from .env import env
 from .stages import build, consume, prepare, transform
 
 # funcion to process pipe stages
-func_dict = {
+stage_func_table = {
     "consume:POST": consume.process,
     "prepare:POST": prepare.process,
     "transform:POST": transform.process,
     "build:POST": build.process,
 }
 
-# list of workers
-allowed_pipe_workers = mlpipeline_config.workers.worker_names[
-    : (min(mlpipeline_config.workers.num_workers, len(mlpipeline_config.workers.worker_names)))
-]
 ps = []
 
 
 # spawn this worker func onto a process
-def pipe_consumer_func(worker):
+def pipe_consumer_func(worker_name):
     import warnings
 
     warnings.simplefilter("ignore")
 
-    consumer = PipeTasksConsumer(mlpipeline_config.redis.dict(), func_dict)
+    consumer = PipeTasksConsumer(env().redis_config, stage_func_table)
     try:
-        consumer.run(worker)
+        consumer.run(worker_name)
     except Exception as ex:
         if not (isinstance(ex, KeyboardInterrupt)):
-            print("-------------Exception happened in pipe worker: ", worker)
+            print("-------------Exception happened in pipe worker: ", worker_name)
             print(ex)
 
 
 def spawn_pipe_workers():
-    for worker in allowed_pipe_workers:
-        p = Process(target=pipe_consumer_func, args=(worker,))
+    for worker_name in env().workers:
+        p = Process(target=pipe_consumer_func, args=(worker_name,))
         p.start()
         ps.append(p)
 

@@ -22,7 +22,7 @@ class Settings(BaseSettings):
 
     @property
     def redis_url(self) -> str:
-        # redis://localhost:6379/0
+        # redis://localhost:6379/3
         return f"redis://{self.REDIS_HOST}:{self.REDIS_PORT}/{self.REDIS_DATABASE_NUMBER}"
 
     @property
@@ -44,7 +44,7 @@ class Settings(BaseSettings):
         return ["GET", "POST", "PUT", "DELETE", "OPTIONS"]
 
     class Config:
-        env_prefix = "CARBON_"
+        env_prefix = "HADES_SERVER_"
         case_sensitive = True
 
 
