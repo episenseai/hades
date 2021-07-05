@@ -1,4 +1,3 @@
-import numpy as np
 from sklearn.linear_model import RidgeClassifier
 from sklearn.metrics import confusion_matrix
 from sklearn.model_selection import GridSearchCV

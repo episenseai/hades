@@ -1,6 +1,5 @@
 from typing import Optional
 
-from devtools import debug
 from pydantic.main import BaseModel
 from sanic import Blueprint, response
 

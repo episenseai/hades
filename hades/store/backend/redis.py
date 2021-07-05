@@ -2,7 +2,6 @@ import base64
 import datetime
 import gzip
 import hashlib
-import os
 import pickle
 import time
 import traceback
@@ -14,7 +13,6 @@ from typing import Any, List, Optional, Tuple
 import jwt
 import orjson
 import redis
-from devtools import debug
 from pydantic import BaseModel
 
 from ..config import MLModel, classifiers, jobq_setting, multi_classifiers, regressors
@@ -917,6 +915,7 @@ class ModelsTasksProducer(RedisTasksProducer):
                             pipe.multi()
                             mss = {}
 
+                            from devtools import debug
                             debug(models_to_build)
                             for i, model in enumerate(models_to_build):
                                 print(changed_hparams)

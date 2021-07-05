@@ -4,7 +4,6 @@ import time
 from random import sample
 from zipfile import ZipFile
 
-import matplotlib.pyplot as plt
 import pandas as pd
 import sklearn.metrics
 from pandas.api.types import is_datetime64_any_dtype, is_numeric_dtype
@@ -309,6 +308,8 @@ def crossValidationResults(clfObject, X, Y, config):
 
 
 def plotRoCCurve(catClasses, fpr, tpr, auRoC):
+    import matplotlib.pyplot as plt
+
     plt.figure()
     # print(catClasses, catClasses.shape)
     n_classes = catClasses.shape[0]
