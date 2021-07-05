@@ -5,7 +5,7 @@ from .env import env
 from .stages import build, consume, prepare, transform
 
 # funcion to process pipe stages
-stage_func_table = {
+stage_function_table = {
     "consume:POST": consume.process,
     "prepare:POST": prepare.process,
     "transform:POST": transform.process,
@@ -16,12 +16,13 @@ ps = []
 
 
 # spawn this worker func onto a process
-def pipe_consumer_func(worker_name):
+def run_worker(worker_name):
     import warnings
 
     warnings.simplefilter("ignore")
 
-    consumer = PipeTasksConsumer(env().redis_config, stage_func_table)
+    consumer = PipeTasksConsumer(env().redis_config, stage_function_table)
+
     try:
         consumer.run(worker_name)
     except Exception as ex:
@@ -32,7 +33,7 @@ def pipe_consumer_func(worker_name):
 
 def spawn_pipe_workers():
     for worker_name in env().workers:
-        p = Process(target=pipe_consumer_func, args=(worker_name,))
+        p = Process(target=run_worker, args=(worker_name,))
         p.start()
         ps.append(p)
 

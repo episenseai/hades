@@ -8,7 +8,7 @@ from .classifiers import linear_sv as linear_sv_classifier
 from .classifiers import logistic_regression
 from .classifiers import mlp as mlp_classifier
 from .classifiers import multinomial_nb, passive_aggressive, ridge, sgd
-from .config import mlmodels_config
+from .env import env
 from .regressors import decision_tree as decision_tree_regressor
 from .regressors import k_neighbors
 from .regressors import linear_sv as linear_sv_regressor
@@ -16,7 +16,7 @@ from .regressors import mlp as mlp_regressor
 from .regressors import nu_sv, radius_neighbors, sgd_nystroem, theilsen
 
 # funcion to process model job workers
-func_dict = {
+models_function_table = {
     # classifier models
     "24ee24ed-6174-4a79-bf53-215d6fbcf680": adaboost.build,
     "fec5dfd9-335f-4f3c-942f-2965a00fcdbe": bagging.build,
@@ -41,35 +41,27 @@ func_dict = {
     "a10dd9dc-cda3-4aa5-b9f3-ac6d26140bd1": theilsen.build,
 }
 
-# list of workers
-allowed_model_workers = mlmodels_config.workers.worker_names[
-    : (min(mlmodels_config.workers.num_workers, len(mlmodels_config.workers.worker_names)))
-]
-
 ps = []
 
 
-# spawn this worker func onto a process
-def models_consumer_func(worker):
+def run_worker(worker):
     import warnings
 
     warnings.simplefilter("ignore")
 
-    consumer = ModelsTasksConsumer(mlmodels_config.redis.dict(), func_dict)
+    consumer = ModelsTasksConsumer(env().redis_config, models_function_table)
     try:
         consumer.run(worker)
     except Exception as ex:
         if not (isinstance(ex, KeyboardInterrupt)):
             print("-------------Exception happened in model worker: ", worker)
             print(ex)
-        # import traceback
-        # print(traceback.format_exc())
 
 
 def spawn_model_workers():
 
-    for worker in allowed_model_workers:
-        p = Process(target=models_consumer_func, args=(worker,))
+    for worker in env().workers:
+        p = Process(target=run_worker, args=(worker,))
         p.start()
         ps.append(p)
 

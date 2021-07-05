@@ -1,5 +1,4 @@
 import codecs
-import re
 import tempfile
 import time
 from random import sample
@@ -26,7 +25,7 @@ from sklearn.model_selection import cross_validate, train_test_split
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import LabelEncoder, OneHotEncoder
 
-from .config import mlmodels_config
+from .env import env
 
 # from pprint import pprint
 
@@ -90,9 +89,7 @@ def uniqueColumnIdUserUpdated(config):
 def csvFileSelector(config):
     df = None
     try:
-        zip_file = ZipFile(
-            mlmodels_config.job.uploads_folder + "/" + config["consume:POST"]["data"]["filepath"]
-        )
+        zip_file = ZipFile(env().UPLOADS_VOLUME + "/" + config["consume:POST"]["data"]["filepath"])
         csv_files = ""
         for csv_file in zip_file.infolist():
             if csv_file.filename.endswith(".csv"):
@@ -104,7 +101,7 @@ def csvFileSelector(config):
         df = pd.read_csv(zip_file.open(csv_files))
     except UnicodeDecodeError:
         # print(ex)
-        with tempfile.TemporaryDirectory() as tmpdirname:
+        with tempfile.TemporaryDirectory(dir=env().TMP_VOLUME) as tmpdirname:
             # print("created temporary directory: ", tmpdirname)
             zip_file.extractall(tmpdirname)
             with codecs.open(
@@ -116,26 +113,12 @@ def csvFileSelector(config):
                 # print(df)
     finally:
         return df
-    # zip_file = ZipFile(
-    #     mlmodels_config.jobs.uploads_folder + "/" + config["consume:POST"]["data"]["filepath"]
-    # )
-    # csv_files = ""
-    # for csv_file in zip_file.infolist():
-    #     if csv_file.filename.endswith(".csv"):
-    #         if "/" in csv_file.filename or "/" in csv_file.filename:
-    #             pass
-    #         else:
-    #             csv_files = csv_files + csv_file.filename
-    # df = pd.read_csv(zip_file.open(csv_files))
-    # return df
 
 
 def finalCsvFileSelector(finalConfig):
     df = None
     try:
-        zip_file = ZipFile(
-            mlmodels_config.jobs.uploads_folder + "/" + finalConfig["data"]["filepath"]
-        )
+        zip_file = ZipFile(env().UPLOADS_VOLUME + "/" + finalConfig["data"]["filepath"])
         csv_files = ""
         for csv_file in zip_file.infolist():
             if csv_file.filename.endswith(".csv"):
@@ -159,17 +142,6 @@ def finalCsvFileSelector(finalConfig):
                 # print(df)
     finally:
         return df
-    # zip_file = ZipFile(mlmodels_config.jobs.uploads_folder + "/" + finalConfig["data"]["filepath"])
-    # csv_files = ""
-    # for csv_file in zip_file.infolist():
-    #     if csv_file.filename.endswith(".csv"):
-    #         if "/" in csv_file.filename or "/" in csv_file.filename:
-    #             pass
-    #         else:
-    #             csv_files = csv_files + csv_file.filename
-    # # print(csv_files)
-    # df = pd.read_csv(zip_file.open(csv_files))
-    # return df
 
 
 def binCreationCategory(dfColumn):

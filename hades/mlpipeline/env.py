@@ -14,15 +14,15 @@ class Settings(BaseSettings):
     REDIS_DATABASE_NUMBER: int = 3
 
     UPLOADS_VOLUME: str = "./bucket/uploads"
-    TMP_VOLUME: str = "./bucket/tmp"
+    TMP_VOLUME: str = "./bucket/mlpipeline/tmp"
 
     NUM_WORKERS: PositiveInt = 1
     # export HADES_MLPIPELINE_WORKER_NAMES='["worker1", "worker2"]'
     WORKER_NAMES: list[str] = [
-        "pipeline:worker1",
-        "pipeline:worker2",
-        "pipeline:worker3",
-        "pipeline:worker4",
+        "mlpipeline:worker1",
+        "mlpipeline:worker2",
+        "mlpipeline:worker3",
+        "mlpipeline:worker4",
     ]
 
     @root_validator(pre=False, skip_on_failure=True)
