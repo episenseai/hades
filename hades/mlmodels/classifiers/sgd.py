@@ -1,10 +1,10 @@
-from sklearn.linear_model import PassiveAggressiveClassifier
+from sklearn.linear_model import SGDClassifier
 from sklearn.metrics import confusion_matrix
 from sklearn.model_selection import GridSearchCV
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import StandardScaler
 
-from carbon.mlmodels.utils import (
+from hades.mlmodels.utils import (
     convert_cvresults_tolist,
     deliverformattedResultClf,
     deliverRoCResult,
@@ -35,7 +35,7 @@ def build(confign):
     if not model_config:
         model_config = default_hp_grid
 
-    clf_fit, clf_results = gridSearchPassiveAggressiveClf(X_train, Y_train, config, model_config)
+    clf_fit, clf_results = gridSearchSGDClf(X_train, Y_train, config, model_config)
 
     if not confign["hp_results"]:
         confign["hp_results"] = [
@@ -74,16 +74,10 @@ def build(confign):
     )
 
 
-def gridSearchPassiveAggressiveClf(X, Y, config, model_config=None):
-
+def gridSearchSGDClf(X, Y, config, model_config=None):
     steps = [
         ("scalar", StandardScaler()),
-        (
-            "clf",
-            PassiveAggressiveClassifier(
-                random_state=100, early_stopping=True, class_weight="balanced"
-            ),
-        ),
+        ("clf", SGDClassifier(class_weight="balanced")),
     ]
     make_pipeline = Pipeline(steps)
     gsClf = GridSearchCV(
@@ -109,16 +103,26 @@ def gridSearchPassiveAggressiveClf(X, Y, config, model_config=None):
 def paramlist(confign):
     config = confign["data"]
     possible_param_grid = {
-        "clf__C": {
-            "default": 1.0,
-            "possible_list": [0.01, 0.1, 1, 10, 100],
+        "clf__loss": {
+            "default": "hinge",
+            "possible_list": [
+                "hinge",
+                "log",
+                "modified_huber",
+                "squared_hinge",
+                "perceptron",
+            ],
         },
-        "clf__max_iter": {
-            "default": 1000,
-            "possible_list": [1000, 10000],
-        },
-        "clf__warm_start": {"default": False, "possible_str": [True, False]},
-        "clf__loss": {"default": "hinge", "possible_str": ["hinge", "string"]},
+        "clf__penalty": {"default": "l2", "possible_str": ["l2", "l1", "elasticnet"]},
+        "clf__alpha": {"default": 0.0001, "possible_list": [0.0001, 0.001, 0.01, 0.1, 1, 10]},
     }
-    default_hp_grid = {"clf__C": [0.1, 1, 10], "clf__max_iter": [1000, 10000]}
+    default_hp_grid = {
+        "clf__loss": [
+            "hinge",
+            "log",
+            "modified_huber",
+            "squared_hinge",
+            "perceptron",
+        ]
+    }
     return (possible_param_grid, default_hp_grid)

@@ -1,11 +1,11 @@
-from sklearn.kernel_approximation import Nystroem
+import numpy as np
+from sklearn.linear_model import RidgeClassifier
 from sklearn.metrics import confusion_matrix
 from sklearn.model_selection import GridSearchCV
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import StandardScaler
-from sklearn.svm import LinearSVC
 
-from carbon.mlmodels.utils import (
+from hades.mlmodels.utils import (
     convert_cvresults_tolist,
     deliverformattedResultClf,
     deliverRoCResult,
@@ -36,7 +36,7 @@ def build(confign):
     if not model_config:
         model_config = default_hp_grid
 
-    clf_fit, clf_results = gridSearchLinearSVClf(X_train, Y_train, config, model_config)
+    clf_fit, clf_results = gridSearchRidgeClf(X_train, Y_train, config, model_config)
 
     if not confign["hp_results"]:
         confign["hp_results"] = [
@@ -75,11 +75,10 @@ def build(confign):
     )
 
 
-def gridSearchLinearSVClf(X, Y, config, model_config=None):
+def gridSearchRidgeClf(X, Y, config, model_config=None):
     steps = [
         ("scalar", StandardScaler()),
-        ("transformerNystroem", Nystroem(gamma=0.2, random_state=1)),
-        ("clf", LinearSVC(random_state=100, class_weight="balanced", max_iter=1000)),
+        ("clf", RidgeClassifier(class_weight="balanced")),
     ]
     make_pipeline = Pipeline(steps)
     gsClf = GridSearchCV(
@@ -105,24 +104,14 @@ def gridSearchLinearSVClf(X, Y, config, model_config=None):
 def paramlist(confign):
     config = confign["data"]
     possible_param_grid = {
-        "clf__penalty": {"default": "l2", "possible_str": ["l1", "l2"]},
-        "clf__loss": {"default": "squared_hinge", "possible_str": ["squared_hinge", "hinge"]},
-        "clf__C": {
+        "clf__alpha": {
             "default": 1.0,
-            "possible_list": [
-                0.01,
-                0.1,
-                1,
-                5,
-                10,
-                50,
-                100,
-            ],
+            "possible_list": [0.01, 0.1, 1, 10, 100],
         },
+        "clf__solver": {"default": "auto", "possible_str": ["auto", "svd", "cholesky", "lsqr"]},
     }
     default_hp_grid = {
-        "clf__C": [0.1, 1, 10],
-        # "clf__penalty": ["l1", "l2"],
-        "clf__loss": ["hinge", "squared_hinge"],
+        "clf__alpha": [0.01, 0.1, 1, 10],
+        "clf__solver": ["auto", "sparse_cg"],
     }
     return (possible_param_grid, default_hp_grid)

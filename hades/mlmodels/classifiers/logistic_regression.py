@@ -1,9 +1,10 @@
-from devtools import debug
-from sklearn.ensemble import AdaBoostClassifier
+from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import confusion_matrix
 from sklearn.model_selection import GridSearchCV
+from sklearn.pipeline import Pipeline
+from sklearn.preprocessing import StandardScaler
 
-from carbon.mlmodels.utils import (
+from hades.mlmodels.utils import (
     convert_cvresults_tolist,
     deliverformattedResultClf,
     deliverRoCResult,
@@ -12,7 +13,7 @@ from carbon.mlmodels.utils import (
     labelEncodeCategoricalVarToNumbers,
     loadData,
     metricResultMultiClassifier,
-    rocCurveforClassDecisionFunction,
+    rocCurveforClassPredictProba,
     splitTrainTestdataset,
 )
 
@@ -36,7 +37,7 @@ def build(confign):
     if not model_config:
         model_config = default_hp_grid
 
-    clf_fit, clf_results = gridSearchAdaBoostClf(X_train, Y_train, config, model_config)
+    clf_fit, clf_results = gridSearchLogisticRegressionClf(X_train, Y_train, config, model_config)
 
     if not confign["hp_results"]:
         confign["hp_results"] = [
@@ -53,7 +54,7 @@ def build(confign):
         confign["hp_results"].append(hp_result)
 
     # Plot of a ROC curve for a specific class
-    fpr, tpr, roc_auc, Y_pred, Y_score = rocCurveforClassDecisionFunction(
+    fpr, tpr, roc_auc, Y_pred, Y_score = rocCurveforClassPredictProba(
         X_train, X_test, Y_train, Y_test, catClasses, clf_fit
     )
     # print((Y_test, Y_pred))
@@ -78,16 +79,24 @@ def build(confign):
     )
 
 
-def gridSearchAdaBoostClf(X, Y, config, model_config=None):
-    gsClf = GridSearchCV(
-        AdaBoostClassifier(
-            random_state=0,
+def gridSearchLogisticRegressionClf(X, Y, config, model_config=None):
+    steps = [
+        ("scalar", StandardScaler()),
+        (
+            "clf",
+            LogisticRegression(multi_class="multinomial", max_iter=500),
         ),
+    ]
+    make_pipeline = Pipeline(steps)
+    gsClf = GridSearchCV(
+        make_pipeline,
         param_grid=model_config,
         cv=config["data"]["cv"]["folds"],
     )
     gsClf_fit = gsClf.fit(X, Y)
     gsClf_fit_estimator = gsClf_fit.best_estimator_
+    # print(gsClf_fit.best_params_, gsClf_fit.best_score_)
+    # print(gsClf_fit.cv_results_)
     gsclf_results = {
         "cvresult_list": convert_cvresults_tolist(gsClf_fit.cv_results_),
         "mean_test_score": gsClf_fit.cv_results_["mean_test_score"].tolist(),
@@ -98,19 +107,22 @@ def gridSearchAdaBoostClf(X, Y, config, model_config=None):
         # "scorer_function": str(gsClf_fit.scorer_),
         # gsClf_fit.best_index_,
     }
-
     return gsClf_fit_estimator, gsclf_results
 
 
 def paramlist(confign):
     config = confign["data"]
     possible_param_grid = {
-        "n_estimators": {
-            "default": 50,
-            "possible_list": list(range(50, 500, 50)),
-        },  # [min,max]
-        "learning_rate": {"default": 1, "possible_list": [0.5, 0.75, 1, 1.25, 1.5, 2]},
-        "algorithm": {"default": "SAMME.R", "possible_str": ["SAMME", "SAMME.R"]},
+        "clf__penalty": {"default": "l2", "possible_str": ["l1", "l2", "elasticnet", "none"]},
+        "clf__C": {
+            "default": 1.0,
+            "possible_list": [0.001, 0.01, 0.1, 1, 10, 100, 1000],
+        },
+        "clf__solver": {
+            "default": "lbfgs",
+            "possible_list": ["newton-cg", "sag", "saga", "lbfgs"],
+        },
+        "clf__warm_start": {"default": False, "possible_str": [True, False]},
     }
-    default_hp_grid = {"n_estimators": [50, 100], "learning_rate": [0.1, 1, 2]}
+    default_hp_grid = {"clf__C": [0.01, 0.1, 1, 10, 100]}
     return (possible_param_grid, default_hp_grid)

@@ -1,10 +1,10 @@
-from sklearn.linear_model import LogisticRegression
+from sklearn.linear_model import PassiveAggressiveClassifier
 from sklearn.metrics import confusion_matrix
 from sklearn.model_selection import GridSearchCV
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import StandardScaler
 
-from carbon.mlmodels.utils import (
+from hades.mlmodels.utils import (
     convert_cvresults_tolist,
     deliverformattedResultClf,
     deliverRoCResult,
@@ -13,7 +13,7 @@ from carbon.mlmodels.utils import (
     labelEncodeCategoricalVarToNumbers,
     loadData,
     metricResultMultiClassifier,
-    rocCurveforClassPredictProba,
+    rocCurveforClassDecisionFunction,
     splitTrainTestdataset,
 )
 
@@ -25,10 +25,8 @@ def build(confign):
     df, X, Y = loadData(config)
     Y = Y.astype(str)
     catClasses = Y.unique()
-
     # Encode the feature values from strings to numerical values
     X = labelEncodeCategoricalVarToNumbers(X, columnType)
-
     # Make the train test split, default = 75%
     X_train, X_test, Y_train, Y_test = splitTrainTestdataset(X, Y, config)
 
@@ -37,7 +35,7 @@ def build(confign):
     if not model_config:
         model_config = default_hp_grid
 
-    clf_fit, clf_results = gridSearchLogisticRegressionClf(X_train, Y_train, config, model_config)
+    clf_fit, clf_results = gridSearchPassiveAggressiveClf(X_train, Y_train, config, model_config)
 
     if not confign["hp_results"]:
         confign["hp_results"] = [
@@ -54,15 +52,12 @@ def build(confign):
         confign["hp_results"].append(hp_result)
 
     # Plot of a ROC curve for a specific class
-    fpr, tpr, roc_auc, Y_pred, Y_score = rocCurveforClassPredictProba(
+    fpr, tpr, roc_auc, Y_pred, Y_score = rocCurveforClassDecisionFunction(
         X_train, X_test, Y_train, Y_test, catClasses, clf_fit
     )
-    # print((Y_test, Y_pred))
     confusion = confusion_matrix(Y_test, Y_pred)
-
     metricResult = metricResultMultiClassifier(Y_test, Y_pred, Y_score)
     # plotRoCCurve(catClasses, fpr, tpr, roc_auc)
-
     roc = deliverRoCResult(catClasses, fpr, tpr, roc_auc)
     return (
         deliverformattedResultClf(
@@ -79,12 +74,15 @@ def build(confign):
     )
 
 
-def gridSearchLogisticRegressionClf(X, Y, config, model_config=None):
+def gridSearchPassiveAggressiveClf(X, Y, config, model_config=None):
+
     steps = [
         ("scalar", StandardScaler()),
         (
             "clf",
-            LogisticRegression(multi_class="multinomial", max_iter=500),
+            PassiveAggressiveClassifier(
+                random_state=100, early_stopping=True, class_weight="balanced"
+            ),
         ),
     ]
     make_pipeline = Pipeline(steps)
@@ -95,8 +93,6 @@ def gridSearchLogisticRegressionClf(X, Y, config, model_config=None):
     )
     gsClf_fit = gsClf.fit(X, Y)
     gsClf_fit_estimator = gsClf_fit.best_estimator_
-    # print(gsClf_fit.best_params_, gsClf_fit.best_score_)
-    # print(gsClf_fit.cv_results_)
     gsclf_results = {
         "cvresult_list": convert_cvresults_tolist(gsClf_fit.cv_results_),
         "mean_test_score": gsClf_fit.cv_results_["mean_test_score"].tolist(),
@@ -113,16 +109,16 @@ def gridSearchLogisticRegressionClf(X, Y, config, model_config=None):
 def paramlist(confign):
     config = confign["data"]
     possible_param_grid = {
-        "clf__penalty": {"default": "l2", "possible_str": ["l1", "l2", "elasticnet", "none"]},
         "clf__C": {
             "default": 1.0,
-            "possible_list": [0.001, 0.01, 0.1, 1, 10, 100, 1000],
+            "possible_list": [0.01, 0.1, 1, 10, 100],
         },
-        "clf__solver": {
-            "default": "lbfgs",
-            "possible_list": ["newton-cg", "sag", "saga", "lbfgs"],
+        "clf__max_iter": {
+            "default": 1000,
+            "possible_list": [1000, 10000],
         },
         "clf__warm_start": {"default": False, "possible_str": [True, False]},
+        "clf__loss": {"default": "hinge", "possible_str": ["hinge", "string"]},
     }
-    default_hp_grid = {"clf__C": [0.01, 0.1, 1, 10, 100]}
+    default_hp_grid = {"clf__C": [0.1, 1, 10], "clf__max_iter": [1000, 10000]}
     return (possible_param_grid, default_hp_grid)

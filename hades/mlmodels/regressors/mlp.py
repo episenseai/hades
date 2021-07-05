@@ -1,8 +1,8 @@
 from sklearn.model_selection import GridSearchCV
+from sklearn.neural_network import MLPRegressor
 from sklearn.pipeline import Pipeline
-from sklearn.svm import NuSVR
 
-from carbon.mlmodels.utils import (
+from hades.mlmodels.utils import (
     convert_cvresults_tolist,
     deliverformattedResult,
     finalFeatureListGenerator,
@@ -30,7 +30,7 @@ def build(confign):
     if not model_config:
         model_config = default_hp_grid
 
-    reg_fit, reg_results = gridSearchNuSVRegressor(X_train, Y_train, config, model_config)
+    reg_fit, reg_results = gridSearchMLPRegressor(X_train, Y_train, config, model_config)
 
     if not confign["hp_results"]:
         confign["hp_results"] = [
@@ -70,12 +70,8 @@ def build(confign):
     )
 
 
-def gridSearchNuSVRegressor(X, Y, config, model_config=None):
-    steps = [
-        # ("feature_selection", SelectFromModel(LassoCV(), "median")),
-        # ("feature_map_Nystroem", Nystroem(n_components=5000)),
-        ("reg", NuSVR(max_iter=1000))
-    ]
+def gridSearchMLPRegressor(X, Y, config, model_config=None):
+    steps = [("reg", MLPRegressor(random_state=100))]
     make_pipeline = Pipeline(steps)
     gsreg = GridSearchCV(
         make_pipeline,
@@ -100,18 +96,31 @@ def gridSearchNuSVRegressor(X, Y, config, model_config=None):
 def paramlist(confign):
     config = confign["data"]
     possible_param_grid = {
-        "reg__nu": {
-            "default": 0.5,
-            "possible_float": [0.01, 1],
+        "reg__activation": {
+            "default": "relu",
+            "possible_str": ["identity", "logistic", "tanh", "relu"],
         },
-        "reg__C": {
-            "default": 1.0,
-            "possible_list": [0.01, 0.1, 1, 10],
+        "reg__alpha": {
+            "default": 0.0001,
+            "possible_list": [0.0001, 0.001, 0.01, 0.1, 1, 10],
         },
-        "reg__gamma": {
-            "default": "scale",
-            "possible_str": ["scale", "auto"],
+        "reg__hidden_layer_sizes": {
+            "default": [100, 100],
+            "possible_list": [[100, 10], [200, 10], [100, 100], [200, 100]],
         },
+        "reg__solver": {
+            "default": "adam",
+            "possible_list": ["adam", "sgd", "lbfgs"],
+        },
+        "reg__learning_rate": {
+            "default": "constant",
+            "possible_list": ["constant", "invscaling", "adaptive"],
+        },
+        "reg__warm_start": {"default": False, "possible_str": [True, False]},
     }
-    default_hp_grid = {"reg__C": [0.1, 1, 10], "reg__gamma": ["auto", "scale"]}
+    default_hp_grid = {
+        "reg__activation": ["identity", "relu"],
+        "reg__solver": ["lbfgs", "adam"],
+        "reg__hidden_layer_sizes": [[100, 10], [200, 100]],
+    }
     return (possible_param_grid, default_hp_grid)

@@ -1,11 +1,9 @@
-import numpy as np
-from sklearn.linear_model import RidgeClassifier
+from devtools import debug
+from sklearn.ensemble import AdaBoostClassifier
 from sklearn.metrics import confusion_matrix
 from sklearn.model_selection import GridSearchCV
-from sklearn.pipeline import Pipeline
-from sklearn.preprocessing import StandardScaler
 
-from carbon.mlmodels.utils import (
+from hades.mlmodels.utils import (
     convert_cvresults_tolist,
     deliverformattedResultClf,
     deliverRoCResult,
@@ -26,8 +24,10 @@ def build(confign):
     df, X, Y = loadData(config)
     Y = Y.astype(str)
     catClasses = Y.unique()
+
     # Encode the feature values from strings to numerical values
     X = labelEncodeCategoricalVarToNumbers(X, columnType)
+
     # Make the train test split, default = 75%
     X_train, X_test, Y_train, Y_test = splitTrainTestdataset(X, Y, config)
 
@@ -36,7 +36,7 @@ def build(confign):
     if not model_config:
         model_config = default_hp_grid
 
-    clf_fit, clf_results = gridSearchRidgeClf(X_train, Y_train, config, model_config)
+    clf_fit, clf_results = gridSearchAdaBoostClf(X_train, Y_train, config, model_config)
 
     if not confign["hp_results"]:
         confign["hp_results"] = [
@@ -56,9 +56,12 @@ def build(confign):
     fpr, tpr, roc_auc, Y_pred, Y_score = rocCurveforClassDecisionFunction(
         X_train, X_test, Y_train, Y_test, catClasses, clf_fit
     )
+    # print((Y_test, Y_pred))
     confusion = confusion_matrix(Y_test, Y_pred)
+
     metricResult = metricResultMultiClassifier(Y_test, Y_pred, Y_score)
     # plotRoCCurve(catClasses, fpr, tpr, roc_auc)
+
     roc = deliverRoCResult(catClasses, fpr, tpr, roc_auc)
     return (
         deliverformattedResultClf(
@@ -75,14 +78,11 @@ def build(confign):
     )
 
 
-def gridSearchRidgeClf(X, Y, config, model_config=None):
-    steps = [
-        ("scalar", StandardScaler()),
-        ("clf", RidgeClassifier(class_weight="balanced")),
-    ]
-    make_pipeline = Pipeline(steps)
+def gridSearchAdaBoostClf(X, Y, config, model_config=None):
     gsClf = GridSearchCV(
-        make_pipeline,
+        AdaBoostClassifier(
+            random_state=0,
+        ),
         param_grid=model_config,
         cv=config["data"]["cv"]["folds"],
     )
@@ -98,20 +98,19 @@ def gridSearchRidgeClf(X, Y, config, model_config=None):
         # "scorer_function": str(gsClf_fit.scorer_),
         # gsClf_fit.best_index_,
     }
+
     return gsClf_fit_estimator, gsclf_results
 
 
 def paramlist(confign):
     config = confign["data"]
     possible_param_grid = {
-        "clf__alpha": {
-            "default": 1.0,
-            "possible_list": [0.01, 0.1, 1, 10, 100],
-        },
-        "clf__solver": {"default": "auto", "possible_str": ["auto", "svd", "cholesky", "lsqr"]},
+        "n_estimators": {
+            "default": 50,
+            "possible_list": list(range(50, 500, 50)),
+        },  # [min,max]
+        "learning_rate": {"default": 1, "possible_list": [0.5, 0.75, 1, 1.25, 1.5, 2]},
+        "algorithm": {"default": "SAMME.R", "possible_str": ["SAMME", "SAMME.R"]},
     }
-    default_hp_grid = {
-        "clf__alpha": [0.01, 0.1, 1, 10],
-        "clf__solver": ["auto", "sparse_cg"],
-    }
+    default_hp_grid = {"n_estimators": [50, 100], "learning_rate": [0.1, 1, 2]}
     return (possible_param_grid, default_hp_grid)

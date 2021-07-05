@@ -1,4 +1,4 @@
-from carbon import __version__
+from hades import __version__
 
 
 def test_version():

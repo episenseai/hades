@@ -1,7 +1,7 @@
 [tool.poetry]
-name = "carbon"
+name = "hades"
 version = "3.0"
-description = "backend app"
+description = "Backend server and data processing apps"
 authors = ["Sushant Kumar <sushant.mithila@gmail.com>", "Rajeev Ranjan <ranjanrajee@gmail.com>"]
 license = "LICENSE"
 readme = "README.md"
@@ -49,12 +49,12 @@ exclude = "(.eggs|.git|.hg|.mypy_cache|.pytest_cache|.ipynb_checkpoints|.nox|.to
 
 [tool.isort]
 profile = "black"
-src_paths = ["carbon", "tests"]
+src_paths = ["hades", "tests"]
 line_length = 100
 
 [tool.pyright]
-include = ["carbon"]
-extraPaths = ["carbon"]
+include = ["hades"]
+extraPaths = ["hades"]
 exclude = [".venv", "**/__pycache__", "**/node_modules", "target"]
 #venvPath = ".venv"
 
@@ -65,5 +65,5 @@ reportMissingTypeStubs = false
 reportGeneralTypeIssues = "none"
 
 executionEnvironments = [
-  { root = "./", extraPaths = ["carbon"], exclude = [".venv", "**/__pycache__", "**/node_modules", "target"] }
+  { root = "./", extraPaths = ["hades"], exclude = [".venv", "**/__pycache__", "**/node_modules", "target"] }
 ]

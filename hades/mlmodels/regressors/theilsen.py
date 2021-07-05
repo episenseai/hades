@@ -2,7 +2,7 @@ from sklearn.linear_model import TheilSenRegressor
 from sklearn.model_selection import GridSearchCV
 from sklearn.pipeline import Pipeline
 
-from carbon.mlmodels.utils import (
+from hades.mlmodels.utils import (
     convert_cvresults_tolist,
     deliverformattedResult,
     finalFeatureListGenerator,

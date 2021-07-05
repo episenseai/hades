@@ -17,5 +17,5 @@ install: clean
 
 .PHONY: format
 format:
-	@poetry run isort carbon/ tests/
-	@poetry run black carbon/ tests/
+	@poetry run isort hades/ tests/
+	@poetry run black hades/ tests/

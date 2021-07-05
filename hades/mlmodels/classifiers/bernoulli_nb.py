@@ -1,10 +1,10 @@
 from sklearn.metrics import confusion_matrix
 from sklearn.model_selection import GridSearchCV
-from sklearn.neural_network import MLPClassifier
+from sklearn.naive_bayes import BernoulliNB
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import StandardScaler
 
-from carbon.mlmodels.utils import (
+from hades.mlmodels.utils import (
     convert_cvresults_tolist,
     deliverformattedResultClf,
     deliverRoCResult,
@@ -34,9 +34,9 @@ def build(confign):
     model_config = confign["hyper_params"]
     if not model_config:
         model_config = default_hp_grid
-
-    clf_fit, clf_results = gridSearchMLPClf(X_train, Y_train, config, model_config)
-
+    # print("start", datetime.now())
+    clf_fit, clf_results = gridSearchBernoulliNBClf(X_train, Y_train, config, model_config)
+    # print("end", datetime.now())
     if not confign["hp_results"]:
         confign["hp_results"] = [
             {
@@ -74,8 +74,8 @@ def build(confign):
     )
 
 
-def gridSearchMLPClf(X, Y, config, model_config=None):
-    steps = [("scalar", StandardScaler()), ("clf", MLPClassifier(early_stopping=True))]
+def gridSearchBernoulliNBClf(X, Y, config, model_config=None):
+    steps = [("scalar", StandardScaler()), ("clf", BernoulliNB())]
     make_pipeline = Pipeline(steps)
     gsClf = GridSearchCV(
         make_pipeline,
@@ -100,30 +100,11 @@ def gridSearchMLPClf(X, Y, config, model_config=None):
 def paramlist(confign):
     config = confign["data"]
     possible_param_grid = {
-        "clf__activation": {
-            "default": "relu",
-            "possible_str": ["identity", "logistic", "tanh", "relu"],
-        },
         "clf__alpha": {
-            "default": 0.0001,
-            "possible_list": [0.0001, 0.001, 0.01, 0.1, 1, 10],
+            "default": 1.0,
+            "possible_list": [0.001, 0.01, 0.1, 0, 1, 10, 100, 1000],
         },
-        "clf__hidden_layer_sizes": {
-            "default": [100, 100],
-            "possible_list": [[100, 10], [200, 10], [100, 100], [200, 100]],
-        },
-        "clf__solver": {
-            "default": "adam",
-            "possible_list": ["adam", "sgd", "lbfgs"],
-        },
-        "clf__learning_rate": {
-            "default": "constant",
-            "possible_list": ["constant", "invscaling", "adaptive"],
-        },
-        "clf__warm_start": {"default": False, "possible_str": [True, False]},
+        "clf__fit_prior": {"default": True, "possible_str": [True, False]},
     }
-    default_hp_grid = {
-        "clf__solver": ["lbfgs", "sgd", "adam"],
-        "clf__hidden_layer_sizes": [[100, 10], [200, 100]],
-    }
+    default_hp_grid = {"clf__alpha": [0.01, 0.1, 1, 10, 100]}
     return (possible_param_grid, default_hp_grid)

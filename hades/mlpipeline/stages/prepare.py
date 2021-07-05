@@ -1,4 +1,4 @@
-from carbon.mlpipeline.utils import (
+from hades.mlpipeline.utils import (
     binCreation,
     binCreationCategory,
     correlate,

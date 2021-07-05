@@ -1,10 +1,11 @@
-from sklearn.linear_model import SGDClassifier
+from sklearn.kernel_approximation import Nystroem
 from sklearn.metrics import confusion_matrix
 from sklearn.model_selection import GridSearchCV
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import StandardScaler
+from sklearn.svm import LinearSVC
 
-from carbon.mlmodels.utils import (
+from hades.mlmodels.utils import (
     convert_cvresults_tolist,
     deliverformattedResultClf,
     deliverRoCResult,
@@ -35,7 +36,7 @@ def build(confign):
     if not model_config:
         model_config = default_hp_grid
 
-    clf_fit, clf_results = gridSearchSGDClf(X_train, Y_train, config, model_config)
+    clf_fit, clf_results = gridSearchLinearSVClf(X_train, Y_train, config, model_config)
 
     if not confign["hp_results"]:
         confign["hp_results"] = [
@@ -74,10 +75,11 @@ def build(confign):
     )
 
 
-def gridSearchSGDClf(X, Y, config, model_config=None):
+def gridSearchLinearSVClf(X, Y, config, model_config=None):
     steps = [
         ("scalar", StandardScaler()),
-        ("clf", SGDClassifier(class_weight="balanced")),
+        ("transformerNystroem", Nystroem(gamma=0.2, random_state=1)),
+        ("clf", LinearSVC(random_state=100, class_weight="balanced", max_iter=1000)),
     ]
     make_pipeline = Pipeline(steps)
     gsClf = GridSearchCV(
@@ -103,26 +105,24 @@ def gridSearchSGDClf(X, Y, config, model_config=None):
 def paramlist(confign):
     config = confign["data"]
     possible_param_grid = {
-        "clf__loss": {
-            "default": "hinge",
+        "clf__penalty": {"default": "l2", "possible_str": ["l1", "l2"]},
+        "clf__loss": {"default": "squared_hinge", "possible_str": ["squared_hinge", "hinge"]},
+        "clf__C": {
+            "default": 1.0,
             "possible_list": [
-                "hinge",
-                "log",
-                "modified_huber",
-                "squared_hinge",
-                "perceptron",
+                0.01,
+                0.1,
+                1,
+                5,
+                10,
+                50,
+                100,
             ],
         },
-        "clf__penalty": {"default": "l2", "possible_str": ["l2", "l1", "elasticnet"]},
-        "clf__alpha": {"default": 0.0001, "possible_list": [0.0001, 0.001, 0.01, 0.1, 1, 10]},
     }
     default_hp_grid = {
-        "clf__loss": [
-            "hinge",
-            "log",
-            "modified_huber",
-            "squared_hinge",
-            "perceptron",
-        ]
+        "clf__C": [0.1, 1, 10],
+        # "clf__penalty": ["l1", "l2"],
+        "clf__loss": ["hinge", "squared_hinge"],
     }
     return (possible_param_grid, default_hp_grid)

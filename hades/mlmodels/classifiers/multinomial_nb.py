@@ -1,8 +1,10 @@
-from sklearn.ensemble import BaggingClassifier
 from sklearn.metrics import confusion_matrix
 from sklearn.model_selection import GridSearchCV
+from sklearn.naive_bayes import MultinomialNB
+from sklearn.pipeline import Pipeline
+from sklearn.preprocessing import MaxAbsScaler
 
-from carbon.mlmodels.utils import (
+from hades.mlmodels.utils import (
     convert_cvresults_tolist,
     deliverformattedResultClf,
     deliverRoCResult,
@@ -23,10 +25,8 @@ def build(confign):
     df, X, Y = loadData(config)
     Y = Y.astype(str)
     catClasses = Y.unique()
-
     # Encode the feature values from strings to numerical values
     X = labelEncodeCategoricalVarToNumbers(X, columnType)
-
     # Make the train test split, default = 75%
     X_train, X_test, Y_train, Y_test = splitTrainTestdataset(X, Y, config)
 
@@ -34,9 +34,9 @@ def build(confign):
     model_config = confign["hyper_params"]
     if not model_config:
         model_config = default_hp_grid
-    # print("start", datetime.now())
-    clf_fit, clf_results = gridSearchBaggingClf(X_train, Y_train, config, model_config)
-    # print("end", datetime.now())
+
+    clf_fit, clf_results = gridSearchMultinomialNBClf(X_train, Y_train, config, model_config)
+
     if not confign["hp_results"]:
         confign["hp_results"] = [
             {
@@ -56,10 +56,8 @@ def build(confign):
         X_train, X_test, Y_train, Y_test, catClasses, clf_fit
     )
     confusion = confusion_matrix(Y_test, Y_pred)
-
     metricResult = metricResultMultiClassifier(Y_test, Y_pred, Y_score)
     # plotRoCCurve(catClasses, fpr, tpr, roc_auc)
-
     roc = deliverRoCResult(catClasses, fpr, tpr, roc_auc)
     return (
         deliverformattedResultClf(
@@ -76,9 +74,11 @@ def build(confign):
     )
 
 
-def gridSearchBaggingClf(X, Y, config, model_config=None):
+def gridSearchMultinomialNBClf(X, Y, config, model_config=None):
+    steps = [("scalar", MaxAbsScaler()), ("clf", MultinomialNB())]  #
+    make_pipeline = Pipeline(steps)
     gsClf = GridSearchCV(
-        BaggingClassifier(random_state=0),
+        make_pipeline,
         param_grid=model_config,
         cv=config["data"]["cv"]["folds"],
     )
@@ -100,17 +100,11 @@ def gridSearchBaggingClf(X, Y, config, model_config=None):
 def paramlist(confign):
     config = confign["data"]
     possible_param_grid = {
-        "n_estimators": {
-            "default": 10,
-            "possible_list": list(range(10, 250, 20)),
-        },
-        "max_samples": {
+        "clf__alpha": {
             "default": 1.0,
-            "possible_list": list(range(1, 100, 20)),
+            "possible_list": [0.01, 0.1, 1, 10, 100],
         },
-        "max_features": {"default": 1.0, "possible_int": [1, config["data"]["includedFeatures"]]},
-        "bootstrap": {"default": False, "possible_str": [True, False]},
-        "warm_start": {"default": False, "possible_str": [True, False]},
+        "clf__fit_prior": {"default": True, "possible_str": [True, False]},
     }
-    default_hp_grid = {"n_estimators": [10, 50], "warm_start": [True, False]}
+    default_hp_grid = {"clf__alpha": [0.01, 0.1, 1, 10, 100]}
     return (possible_param_grid, default_hp_grid)
