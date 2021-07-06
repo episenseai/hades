@@ -4,6 +4,8 @@ ARG DEBIAN_FRONTEND=noninteractive
 
 FROM python:3.9.6-slim-buster AS python-base
 
+RUN groupadd --gid 1000 python && useradd --uid 1000 --gid python --shell /bin/bash --create-home python
+
 ENV PYTHONUNBUFFERED=1 \
     PYTHONDONTWRITEBYTECODE=1
 
@@ -62,6 +64,8 @@ COPY hades/store /app/hades/store
 
 EXPOSE 3002
 
+USER python
+
 CMD ["python",  "-m",  "hades.server.main"]
 
 
@@ -71,6 +75,8 @@ COPY hades/mlpipeline /app/hades/mlpipeline
 
 COPY hades/store /app/hades/store
 
+USER python
+
 CMD ["python",  "-m",  "hades.mlpipeline.main"]
 
 
@@ -79,5 +85,7 @@ FROM python-deps AS hades-mlmodels
 COPY hades/mlmodels /app/hades/mlmodels
 
 COPY hades/store /app/hades/store
+
+USER python
 
 CMD ["python",  "-m",  "hades.mlmodels.main"]
