@@ -49,9 +49,11 @@ async def login(request):
                 info = "Either username or password is wrong. New user? Signup to create an account and then try logging in."
             else:
                 info = f"Successfully logged in as {request.json['username']}"
+        print(jwt)
     except Exception as ex:
         info = ex.args[0]
         status = 500
+        print(info)
     return response.json(
         {
             "success": True if (status == 200 and jwt is not None) else False,

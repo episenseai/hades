@@ -25,6 +25,8 @@ CORS(
 ### Middleware to give blank response to CORS
 @app.middleware("request")
 async def cors_halt_request(request):
+    print(env().cors_origins)
+    print(request.headers)
     if request.path != "/checks/health":
         if "origin" not in request.headers:
             return response.json({}, status=404)
@@ -35,10 +37,11 @@ async def cors_halt_request(request):
 ### MIDDLEWARES for the server
 @app.middleware("request")
 async def authorization(request):
-    # print(request.headers)
-    # print("Authorization: ", request.token)
-    # print("path: ", request.path)
-    # print(request.args)
+    print(request.headers)
+    print("Authorization: ", request.token)
+    print("path: ", request.path)
+    print(request.args)
+
     if request.path in ["/sse/events", "/sse/events/models"]:
         proj = check_sse_token(request)
         if not proj:
