@@ -15,7 +15,7 @@ app.blueprint(root_bp)
 ### CORS setting
 CORS(
     app,
-    resources={r"/*": {"origins": env().cors_origins}},
+    resources={r"/*": {}},
     methods=env().cors_methods,
     automatic_options=True,
     supports_credentials=True,
@@ -30,7 +30,7 @@ async def cors_halt_request(request):
     if request.path != "/checks/health":
         if "origin" not in request.headers:
             return response.json({}, status=404)
-        if request.headers["origin"] not in env().cors_origins:
+        if False and request.headers["origin"] not in env().cors_origins:
             return response.json({}, status=403)
 
 

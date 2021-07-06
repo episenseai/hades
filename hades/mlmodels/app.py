@@ -43,10 +43,10 @@ models_function_table = {
 
 
 # `file_path` includes the `folder_name` prefix
-def save_pickled_model(self, folder_prefix, folder_name, file_path, bytes_blob) -> bool:
+def save_pickled_model(folder_prefix, folder_name, file_path, bytes_blob) -> bool:
     path = f"{folder_prefix}/{file_path}"
     try:
-        zipped = self.pickle_gzip(bytes_blob)
+        
         try:
             import os
 
@@ -55,7 +55,7 @@ def save_pickled_model(self, folder_prefix, folder_name, file_path, bytes_blob) 
             pass
 
         with open(path, mode="wb") as sinkfd:
-            sinkfd.write(zipped)
+            sinkfd.write(bytes_blob)
         return True
     except Exception as ex:
         import traceback
