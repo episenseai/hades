@@ -41,22 +41,26 @@ COPY pyproject.toml poetry.lock ./
 RUN poetry export --format=requirements.txt >requirements-prod.txt
 
 
-FROM python-base AS python-deps
+FROM python-base AS python-deps-ml
+
+RUN --mount=from=python-requirements,src=/app/target,target=/app/target set -x && \
+        pip3 install --no-cache-dir -U pip && \
+        pip3 install --no-cache-dir -U setuptools wheel && \
+        pip3 install --no-cache-dir -r target/requirements-prod.txt
+
+
+FROM python-base AS python-deps-server
 
 # size of docker image is too large due to precompiled numpy, scipy, matplotlib, ...
 # https://towardsdatascience.com/how-to-shrink-numpy-scipy-pandas-and-matplotlib-for-your-data-product-4ec8d7e86ee4
 RUN --mount=from=python-requirements,src=/app/target,target=/app/target set -x && \
         pip3 install --no-cache-dir -U pip && \
         pip3 install --no-cache-dir -U setuptools wheel && \
-        pip3 install --no-cache-dir -r target/requirements-prod.txt
-        # if ! command -v top > /dev/null; then \
-        #     apt-get update; \
-        #     apt-get install --no-install-recommends -y htop; \
-        #     rm -rf /var/lib/apt/lists/*; \
-        # fi
+        pip3 install --no-cache-dir -r target/requirements-prod.txt && \
+        pip3 uninstall --no-cache-dir -y numpy pandas scikit-learn
 
 
-FROM python-deps AS hades-server
+FROM python-deps-server AS hades-server
 
 COPY hades/server /app/hades/server
 
@@ -69,7 +73,7 @@ USER python
 CMD ["python",  "-m",  "hades.server.main"]
 
 
-FROM python-deps AS hades-mlpipeline
+FROM python-deps-ml AS hades-mlpipeline
 
 COPY hades/mlpipeline /app/hades/mlpipeline
 
@@ -80,7 +84,7 @@ USER python
 CMD ["python",  "-m",  "hades.mlpipeline.main"]
 
 
-FROM python-deps AS hades-mlmodels
+FROM python-deps-ml AS hades-mlmodels
 
 COPY hades/mlmodels /app/hades/mlmodels
 
