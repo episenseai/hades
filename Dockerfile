@@ -4,7 +4,13 @@ ARG DEBIAN_FRONTEND=noninteractive
 
 FROM python:3.9.6-slim-buster AS python-base
 
-RUN groupadd --gid 1000 python && useradd --uid 1000 --gid python --shell /bin/bash --create-home python
+RUN groupadd --gid 1000 python && useradd --uid 1000 --gid python --shell /bin/bash --create-home python && \
+        mkdir -p /app && \
+        mkdir -p /app/titan && \
+        mkdir -p /app/bucket/uploads && \
+        mkdir -p /app/bucket/models && \
+        mkdir -p /app/bucket/mlpipeline/tmp && \
+        mkdir -p /app/bucket/mlmodels/tmp
 
 ENV PYTHONUNBUFFERED=1 \
     PYTHONDONTWRITEBYTECODE=1
