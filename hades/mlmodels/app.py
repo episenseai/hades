@@ -46,7 +46,6 @@ models_function_table = {
 def save_pickled_model(folder_prefix, folder_name, file_path, bytes_blob) -> bool:
     path = f"{folder_prefix}/{file_path}"
     try:
-        
         try:
             import os
 
