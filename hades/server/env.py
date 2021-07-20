@@ -50,5 +50,4 @@ class Settings(BaseSettings):
 
 @lru_cache
 def env() -> Settings:
-    print(Settings().dict())
     return Settings()
