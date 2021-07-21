@@ -15,6 +15,7 @@ hiredis = "^2.0.0"
 PyJWT = "^2.1.0"
 scikit-learn = "0.24.2"
 pydantic = {extras = ["email", "typing_extensions", "dotenv"], version = "^1.8.2"}
+python-jose = {extras = ["cryptography"], version = "^3.2.0"}
 sanic = "^21.6.0"
 sanic-cors = "^1.0.0"
 orjson = "^3.5.4"

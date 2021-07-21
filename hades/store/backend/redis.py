@@ -916,6 +916,7 @@ class ModelsTasksProducer(RedisTasksProducer):
                             mss = {}
 
                             from devtools import debug
+
                             debug(models_to_build)
                             for i, model in enumerate(models_to_build):
                                 print(changed_hparams)
@@ -1365,12 +1366,6 @@ class Application:
     def __init__(self, redis_config):
         """
         pool: redis ConnectionPool
-        users_hashmap:s
-            user_name -> user_id::password_digest
-        users_set: (set)
-            ('user1', 'user2', ...)
-        users_id: (set)
-            ('2dg672d627f', 'd27g82gd8g87', ...)
         projects_set: (sorted set), lexicographical queries
             0 user_id1:project_id1:unix_time1:project_name1
             0 user_id2:project_id2:unix_time2:project_name2
@@ -1381,9 +1376,6 @@ class Application:
         """
         self.redis_config = redis_config
         self.redis = redis.Redis(connection_pool=redis.ConnectionPool(**redis_config))
-        self.users_hashmap = jobq_setting.USERS_HASHMAP
-        self.users_set = jobq_setting.USERS_SET
-        self.users_id = jobq_setting.USERS_ID
         self.projects_set = jobq_setting.PROJECTS_SORTED_SET
         self.current_project = jobq_setting.CURRENT_PROJECT
         self.uploads_set = jobq_setting.UPLOADS_SORTED_SET
@@ -1394,87 +1386,6 @@ class Application:
     @staticmethod
     def digest(string):
         return hashlib.sha256(string.encode("utf-8")).hexdigest()
-
-    def add_user(self, user_name, password):
-        password_hash = self.digest(password)
-        user_id = None
-        with self.redis.pipeline() as pipe:
-            watch_error_count = 0
-            while True:
-                try:
-                    user_id = uuid.uuid4().hex
-                    pipe.watch(self.users_hashmap, self.users_set, self.users_id)
-                    if not pipe.sismember(self.users_set, user_name):
-                        if pipe.sismember(self.users_id, user_id):
-                            continue
-                        pipe.multi()
-                        pipe.sadd(self.users_set, user_name)
-                        pipe.sadd(self.users_id, user_id)
-                        pipe.hset(self.users_hashmap, user_name, f"{user_id}:{password_hash}")
-                        pipe.execute()
-                        break
-                    user_id = None
-                    break
-                except redis.WatchError as ex:
-                    if watch_error_count > 100:
-                        print(ex)
-                        raise Exception(
-                            "Something fatal happened while creating a new user account."
-                        ) from ex
-                    if watch_error_count > 20:
-                        time.sleep(0.1)
-                    watch_error_count += 1
-                    continue
-        return user_id
-
-    def get_user(self, user_name):
-        res = self.redis.hget(self.users_hashmap, user_name)
-        if res:
-            return User(*res.split(sep=":"))  # type: ignore
-        return None
-
-    def get_id(self, user_name):
-        user = self.get_user(user_name)
-        if user:
-            return user.id
-        return None
-
-    def verify_user(self, user_name, password):
-        user = self.get_user(user_name)
-        if user and (user.password == self.digest(password)):
-            return user.id
-        return None
-
-    def userid_exists(self, userid):
-        return self.redis.sismember(self.users_id, userid)
-
-    # stateles authentication using JWT
-    # issue a token when the user logs in
-    def issue_jwt(self, user_name, password):
-        # do not hardcode these values
-        jwt_tok = "f2fea1ed-b40c-40a3-94e6-698360c22de7"
-
-        user_id = self.verify_user(user_name, password)
-        payload = {"username": user_name, "userid": user_id}
-        if user_id:
-            try:
-                return jwt.encode(payload, jwt_tok, algorithm="HS256")
-            except Exception as ex:
-                print("Error issue_jwt => ", ex)
-        return None
-
-    # check token validity by decoding it
-    # if the token is valid then user is verified
-    @staticmethod
-    def verify_jwt(encoded_jwt):
-        # do not hardcode these values
-        jwt_tok = "f2fea1ed-b40c-40a3-94e6-698360c22de7"
-
-        try:
-            return jwt.decode(encoded_jwt, jwt_tok, algorithms="HS256")
-        except Exception:
-            pass
-        return None
 
     def add_project(self, user_id, project_name, project_desc):
         with self.redis.pipeline() as pipe:

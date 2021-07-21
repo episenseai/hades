@@ -35,9 +35,6 @@ multi_classifiers = MultiClassifierModels.parse_file(file_dir / "multi_classifie
 
 
 class JobQueueConfig(BaseModel):
-    USERS_HASHMAP: str
-    USERS_SET: str
-    USERS_ID: str
     PROJECTS_SORTED_SET: str
     CURRENT_PROJECT: str
     UPLOADS_SORTED_SET: str

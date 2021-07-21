@@ -4,15 +4,16 @@ from sanic import Sanic, response
 from sanic.exceptions import NotFound
 from sanic_cors import CORS
 
+from .auth.validate import validate_token
 from .env import env
 from .routes import root_bp
 from .routes.sse import check_sse_token
 from .store import store_backend
 
-app = Sanic("episense_backend_app")
+app = Sanic("hades")
 app.blueprint(root_bp)
 
-### CORS setting
+# CORS setting
 CORS(
     app,
     resources={r"/*": {}},
@@ -22,23 +23,17 @@ CORS(
 )
 
 
-### Middleware to give blank response to CORS
 @app.middleware("request")
 async def cors_halt_request(request):
-    # print(env().cors_origins)
-    # print(request.headers)
-    if request.path != "/checks/health":
-        if "origin" not in request.headers:
-            return response.json({}, status=404)
-        if False and request.headers["origin"] not in env().cors_origins:
-            return response.json({}, status=403)
+    pass
 
 
-### MIDDLEWARES for the server
 @app.middleware("request")
 async def authorization(request):
-    # print(request.headers)
-    # print("Authorization: ", request.token)
+    """
+    OAUTH token validation middleware for the server
+    """
+    # debug(request.headers)
     # print("path: ", request.path)
     # print(request.args)
 
@@ -74,7 +69,7 @@ async def authorization(request):
                 status=401,
             )
         else:
-            decoded_token = store_backend.verify_jwt(request.token)
+            decoded_token = await validate_token(request.token)
             if decoded_token is None:
                 return response.json(
                     {
@@ -84,6 +79,8 @@ async def authorization(request):
                     },
                     status=401,
                 )
+
+            userid = str(decoded_token.sub)
             if "userid" in request.args:
                 if len(request.args["userid"]) != 1:
                     return response.json(
@@ -94,7 +91,7 @@ async def authorization(request):
                         },
                         status=400,
                     )
-                if request.args["userid"][0] != decoded_token["userid"]:
+                if request.args["userid"][0] != userid:
                     return response.json(
                         {
                             "success": False,
@@ -103,8 +100,8 @@ async def authorization(request):
                         },
                         status=401,
                     )
-            request.ctx.username = decoded_token["username"]
-            request.ctx.userid = decoded_token["userid"]
+
+            request.ctx.userid = userid
 
 
 # This is run before the server starts accepting connections
@@ -148,8 +145,3 @@ async def ignore_404s(request, _exception):
         },
         status=404,
     )
-
-
-###  serve STATIC files
-# Some browsers request it by default (prevent unnecessary 404 on server)
-app.static("/favicon.ico", "./static/favicon.ico", name="favicon", content_type="image/x-icon")

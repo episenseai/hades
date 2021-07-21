@@ -15,9 +15,6 @@ async def signup(request):
         if "userid" not in request.args:
             info = "Bad request. missing parameters"
             status = 400
-        elif not store_backend.userid_exists(request.ctx.userid):
-            info = "Unauthorized request. Userid does not exist."
-            status = 401
         elif ":" in request.files["file"][0].name:
             info = (
                 "File name contains  ':'  , which is not allowed. Try again with a different name."

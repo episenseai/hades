@@ -1,7 +1,4 @@
 {
-  "USERS_HASHMAP": "users_login:101010",
-  "USERS_SET": "unique_users:101010",
-  "USERS_ID": "users_id:101010",
   "PROJECTS_SORTED_SET": "projects_sorted_set:101010",
   "CURRENT_PROJECT": "current_project:101010",
   "UPLOADS_SORTED_SET": "uploads_sorted_set:101010",
