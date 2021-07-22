@@ -1,4 +1,5 @@
 from functools import lru_cache
+from typing import Optional
 
 from pydantic import BaseSettings, SecretStr, root_validator, validator
 from pydantic.types import PositiveInt
@@ -8,10 +9,10 @@ class Settings(BaseSettings):
     # DEV or PRODUCTION
     ENV: str = "DEV"
 
-    REDIS_PASSWORD: SecretStr = ""
+    REDIS_PASSWORD: Optional[SecretStr] = None
     REDIS_HOST: str = "localhost"
     REDIS_PORT: int = 6379
-    REDIS_DATABASE_NUMBER: int = 3
+    REDIS_DATABASE_NUMBER: int = 2
 
     UPLOADS_VOLUME: str = "./bucket/uploads"
     TMP_VOLUME: str = "./bucket/mlpipeline/tmp"
@@ -60,12 +61,20 @@ class Settings(BaseSettings):
         return f"redis://{self.REDIS_HOST}:{self.REDIS_PORT}/{self.REDIS_DATABASE_NUMBER}"
 
     @property
+    def redis_pasword(self) -> Optional[str]:
+        secret = self.REDIS_PASSWORD
+        if secret is None:
+            return None
+        else:
+            return secret.get_secret_value()
+
+    @property
     def redis_config(self) -> dict:
         return {
             "host": self.REDIS_HOST,
             "port": self.REDIS_PORT,
             "db": self.REDIS_DATABASE_NUMBER,
-            "password": self.REDIS_PASSWORD.get_secret_value(),
+            "password": self.redis_pasword,
             "decode_responses": True,
         }
 
