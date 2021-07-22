@@ -1,4 +1,5 @@
 import os
+import asyncio
 
 from sanic import Sanic, response
 from sanic.exceptions import NotFound
@@ -71,6 +72,11 @@ async def authorization(request):
         else:
             decoded_token = await validate_token(request.token)
             if decoded_token is None:
+                # NOTE: auth tarpit: introduce a delay in response when the validation fails.
+                # This is should be done in a more proper way.
+                # Sleep for 5 secnonds
+                await asyncio.sleep(5)
+
                 return response.json(
                     {
                         "success": False,
