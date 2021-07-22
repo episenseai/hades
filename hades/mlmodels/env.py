@@ -1,3 +1,4 @@
+from enum import Enum, unique
 from functools import lru_cache
 from typing import Optional
 
@@ -5,12 +6,18 @@ from pydantic import BaseSettings, SecretStr, root_validator, validator
 from pydantic.types import PositiveInt
 
 
+@unique
+class Env(str, Enum):
+    DEV = "DEV"
+    PRODUCTION = "PRODUCTION"
+
+
 class Settings(BaseSettings):
-    # DEV or PRODUCTION
-    ENV: str = "DEV"
+    ENV: Env = Env.DEV
 
     REDIS_PASSWORD: Optional[SecretStr] = None
     REDIS_HOST: str = "localhost"
+    # User setting is ignored and it always uses the deault value
     REDIS_PORT: int = 6379
     REDIS_DATABASE_NUMBER: int = 2
 

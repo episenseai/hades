@@ -1,13 +1,20 @@
 from functools import lru_cache
 from typing import Optional
+from enum import Enum, unique
 
 from pydantic import BaseSettings, SecretStr, validator
 
 
-class Settings(BaseSettings):
-    # DEV or PRODUCTION
-    ENV: str = "DEV"
+@unique
+class Env(str, Enum):
+    DEV = "DEV"
+    PRODUCTION = "PRODUCTION"
 
+
+class Settings(BaseSettings):
+    ENV: Env = Env.DEV
+
+    # User setting is ignored and it always uses the deault value
     PORT: int = 3002
     WORKERS: int = 1
 
@@ -15,6 +22,7 @@ class Settings(BaseSettings):
 
     REDIS_PASSWORD: Optional[SecretStr] = None
     REDIS_HOST: str = "localhost"
+    # User setting is ignored and it always uses the deault value
     REDIS_PORT: int = 6379
     REDIS_DATABASE_NUMBER: int = 2
 
