@@ -66,6 +66,8 @@ COPY hades/server /app/hades/server
 
 COPY hades/store /app/hades/store
 
+# Always run on default port. Ignore environment
+# redis is expected at default port 6379. Environment is ignored.
 EXPOSE 3002
 
 CMD ["python",  "-m",  "hades.server.main"]
@@ -77,6 +79,7 @@ COPY hades/mlpipeline /app/hades/mlpipeline
 
 COPY hades/store /app/hades/store
 
+# redis is expected at default port 6379. Environment is ignored.
 CMD ["python",  "-m",  "hades.mlpipeline.main"]
 
 
@@ -86,4 +89,5 @@ COPY hades/mlmodels /app/hades/mlmodels
 
 COPY hades/store /app/hades/store
 
+# redis is expected at default port 6379. Environment is ignored.
 CMD ["python",  "-m",  "hades.mlmodels.main"]

@@ -1,6 +1,6 @@
 from functools import lru_cache
 
-from pydantic import BaseSettings, SecretStr, root_validator
+from pydantic import BaseSettings, SecretStr, root_validator, validator
 from pydantic.types import PositiveInt
 
 
@@ -24,6 +24,11 @@ class Settings(BaseSettings):
         "mlpipeline:worker3",
         "mlpipeline:worker4",
     ]
+
+    @validator("REDIS_PORT", pre=True, always=True)
+    def ignore_redis_port(cls, _):
+        """Always run on default port. Ignore environement"""
+        return 6379
 
     @root_validator(pre=False, skip_on_failure=True)
     def duplicate_name(cls, values):

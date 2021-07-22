@@ -1,6 +1,6 @@
 from functools import lru_cache
 
-from pydantic import BaseSettings, SecretStr
+from pydantic import BaseSettings, SecretStr, validator
 
 
 class Settings(BaseSettings):
@@ -19,6 +19,16 @@ class Settings(BaseSettings):
 
     UPLOADS_VOLUME: str = "./bucket/uploads"
     MODELS_VOLUME: str = "./bucket/models"
+
+    @validator("PORT", pre=True, always=True)
+    def ignore_port(cls, _):
+        """Always run on default port. Ignore environement"""
+        return 3002
+
+    @validator("REDIS_PORT", pre=True, always=True)
+    def ignore_redis_port(cls, _):
+        """Always run on default port. Ignore environement"""
+        return 6379
 
     @property
     def redis_url(self) -> str:
