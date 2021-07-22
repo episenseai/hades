@@ -61,6 +61,9 @@ class Settings(BaseSettings):
 
     @property
     def workers(self) -> list[str]:
+        # TODO: This might cause problems when running multiple copies of this app
+        # because of the overlap in worker names; every copy of this application
+        # will be using the same worker name to connect with the redis streams.
         return self.WORKER_NAMES[: min(self.NUM_WORKERS, len(self.WORKER_NAMES))]
 
     @property
