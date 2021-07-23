@@ -14,6 +14,7 @@ from hades.mlmodels.utils import (
     rocCurveforClassDecisionFunction,
     splitTrainTestdataset,
 )
+from ...mlmodels.utils import empty_choices
 
 
 def build(confign):
@@ -71,7 +72,7 @@ def build(confign):
             roc,
             grid_results=clf_results,
             hp_results=confign["hp_results"],
-            possible_model_params=possible_param_grid,
+            possible_model_params=empty_choices(possible_param_grid),
         ),
         clf_fit,
     )

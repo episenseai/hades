@@ -26,8 +26,10 @@ from sklearn.preprocessing import LabelEncoder, OneHotEncoder
 
 from .env import env
 
-# from pprint import pprint
-
+def empty_choices(param_grid: dict[str, dict]) -> dict[str, dict]:
+    for param in param_grid.keys():
+        param_grid[param]["choices"] = []
+    return param_grid
 
 def typeOfColumn(columntype):
     if columntype == object:
@@ -624,9 +626,15 @@ def deliverformattedResult(
     Y_pred,
     Y_test,
     grid_results=None,
-    hp_results=[],
+    hp_results=None,
     possible_model_params=None,
 ):
+    if hp_results is None:
+        hp_results = []
+
+    if possible_model_params is None:
+        possible_model_params = {}
+
     # predicted vs true plot
     if Y_test.shape[0] > 400:
         predicted_values = []
