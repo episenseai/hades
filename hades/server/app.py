@@ -6,7 +6,7 @@ from sanic.exceptions import NotFound
 from sanic_cors import CORS
 
 from .auth.validate import validate_token
-from .env import env
+from .env import env, Env
 from .routes import root_bp
 from .routes.sse import check_sse_token
 from .store import store_backend
@@ -70,13 +70,18 @@ async def authorization(request):
                 status=401,
             )
         else:
-            decoded_token = await validate_token(request.token)
+            (decoded_token, is_expired) = await validate_token(request.token)
             if decoded_token is None:
                 # NOTE: auth tarpit: introduce a delay in response when the validation fails.
                 # This is should be done in a more proper way.
                 # Sleep for 5 secnonds
-                await asyncio.sleep(5)
+                if env().ENV == Env.PRODUCTION:
+                    await asyncio.sleep(5)
 
+                headers = {"WWW-Authenticate": "Bearer"}
+                if is_expired:
+                    headers["Access-Control-Expose-Headers"] = "X-Expired-AccessToken"
+                    headers["X-Expired-AccessToken"] = "1"
                 return response.json(
                     {
                         "success": False,
@@ -84,6 +89,7 @@ async def authorization(request):
                         "info": "Unauthorized Request. Expired or invalid credentials",
                     },
                     status=401,
+                    headers=headers,
                 )
 
             userid = str(decoded_token.sub)
