@@ -1070,7 +1070,8 @@ class ModelsTasksProducer(RedisTasksProducer):
                 model = {}
             model["id"] = modelid
             model["status"] = items[f"{modelid}:STATUS"]
-            if items[f"{modelid}:STATUS"] == "ERROR":
+            # do not send error trace to frontend. Use it internally for debugging.
+            if items[f"{modelid}:STATUS"] == "ERROR" and False:
                 model["ERROR"] = items[f"{modelid}:ERROR"]
             else:
                 model["ERROR"] = ""
