@@ -7,9 +7,9 @@ if __name__ == "__main__":
     warnings.filterwarnings("ignore")
 
     app.config.KEEP_ALIVE_TIMEOUT = 30
-    app.config.REQUEST_MAX_SIZE = 5368709120
-    app.config.RESPONSE_TIMEOUT = 200
-    app.config.REQUEST_BUFFER_QUEUE_SIZE = 200
+    app.config.REQUEST_MAX_SIZE = 100000000
+    app.config.RESPONSE_TIMEOUT = 300
+    app.config.REQUEST_BUFFER_QUEUE_SIZE = 400
 
     if env().ENV == "DEV":
         AUTO_RELOAD = True

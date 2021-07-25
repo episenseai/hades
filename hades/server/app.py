@@ -25,11 +25,6 @@ CORS(
 
 
 @app.middleware("request")
-async def cors_halt_request(request):
-    pass
-
-
-@app.middleware("request")
 async def authorization(request):
     """
     OAUTH token validation middleware for the server
@@ -54,6 +49,7 @@ async def authorization(request):
             request.ctx.proj = proj
 
     else:
+        is_expired = None
         if request.token is not None:
             (decoded_token, is_expired) = await validate_token(request.token)
         if request.token is None or decoded_token is None:
@@ -112,24 +108,6 @@ async def beforeStart(_app, _loop):
         os.mkdir(f"{env().MODELS_VOLUME}")
     except FileExistsError:
         pass
-
-
-# This is run after the server has successfully started
-@app.listener("after_server_start")
-async def notify_server_started(_app, _loop):
-    print("============ STARTING (SERVER) ============")
-
-
-# This is run before the server starts shuttings down
-@app.listener("before_server_stop")
-async def notify_server_stopping(_app, _loop):
-    print("============ STOPING  (SERVER) ============")
-
-
-# This is run after all the remaining requests have been processesed
-# @app.listener("after_server_stop")
-# async def afterStop(app, loop):
-#     printBox("Processed all remaining requests")
 
 
 @app.exception(NotFound)
