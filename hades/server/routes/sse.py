@@ -22,7 +22,7 @@ async def sse(request):
         try:
             # i = 1
             while True:
-                await asyncio.sleep(3)
+                await asyncio.sleep(5)
                 data = pipe_producer.current_pipe_state(userid, projectid)
                 if data is None:
                     raise CancelledError("could not get current pipe state")
@@ -75,16 +75,10 @@ async def sse_models(request):
                 # s = "data: " + str(i) + "hello sse" + "\r\n\r\n"
                 # print(s.encode())
                 # print(data)
-                print("===================")
                 await response.write(s.encode())
-                print("===================")
                 # i += 1
         except CancelledError as ex:
             pass
-            # import traceback
-
-            # print(traceback.format_exc())
-            print(ex)
         except Exception as ex:
             import traceback
 
@@ -152,8 +146,4 @@ def check_sse_token(request):
                 one_shot_tokens.discard(request.args["token"][0])
                 return proj
     except Exception as ex:
-        # import traceback
-
-        # print(traceback.format_exc())
-        print(ex)
         return False

@@ -53,45 +53,30 @@ async def authorization(request):
         else:
             request.ctx.proj = proj
 
-    if request.path not in [
-        "/auth/login",
-        "/auth/signup",
-        "/sse/events",
-        "/sse/events/models",
-        "/checks/health",
-    ]:
-        if request.token is None:
+    else:
+        if request.token is not None:
+            (decoded_token, is_expired) = await validate_token(request.token)
+        if request.token is None or decoded_token is None:
+            # NOTE: auth tarpit: introduce a delay in response when the validation fails.
+            # This is should be done in a more proper way.
+            # Sleep for 5 secnonds
+            if env().ENV == Env.PRODUCTION:
+                await asyncio.sleep(5)
+
+            headers = {"WWW-Authenticate": "Bearer"}
+            if is_expired:
+                headers["Access-Control-Expose-Headers"] = "X-Expired-AccessToken"
+                headers["X-Expired-AccessToken"] = "1"
             return response.json(
                 {
                     "success": False,
                     "version": "v1",
-                    "info": "Unauthorized Request. Please Login to continue...",
+                    "info": "Unauthorized Request. Expired or invalid credentials",
                 },
                 status=401,
+                headers=headers,
             )
         else:
-            (decoded_token, is_expired) = await validate_token(request.token)
-            if decoded_token is None:
-                # NOTE: auth tarpit: introduce a delay in response when the validation fails.
-                # This is should be done in a more proper way.
-                # Sleep for 5 secnonds
-                if env().ENV == Env.PRODUCTION:
-                    await asyncio.sleep(5)
-
-                headers = {"WWW-Authenticate": "Bearer"}
-                if is_expired:
-                    headers["Access-Control-Expose-Headers"] = "X-Expired-AccessToken"
-                    headers["X-Expired-AccessToken"] = "1"
-                return response.json(
-                    {
-                        "success": False,
-                        "version": "v1",
-                        "info": "Unauthorized Request. Expired or invalid credentials",
-                    },
-                    status=401,
-                    headers=headers,
-                )
-
             userid = str(decoded_token.sub)
             if "userid" in request.args:
                 if len(request.args["userid"]) != 1:

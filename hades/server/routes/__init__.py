@@ -8,7 +8,6 @@ from .sse import sse_bp
 from .uploads import uploads_bp
 
 root_bp = Blueprint.group(
-    checks_bp,
     projects_bp,
     uploads_bp,
     pipe_bp,
