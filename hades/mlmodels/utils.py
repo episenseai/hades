@@ -26,10 +26,12 @@ from sklearn.preprocessing import LabelEncoder, OneHotEncoder
 
 from .env import env
 
+
 def empty_choices(param_grid: dict[str, dict]) -> dict[str, dict]:
     for param in param_grid.keys():
         param_grid[param]["choices"] = []
     return param_grid
+
 
 def typeOfColumn(columntype):
     if columntype == object:

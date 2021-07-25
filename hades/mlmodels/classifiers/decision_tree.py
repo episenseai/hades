@@ -16,8 +16,8 @@ from hades.mlmodels.utils import (
     splitTrainTestdataset,
 )
 
-from .confgin import finalconfig1
 from ...mlmodels.utils import empty_choices
+from .confgin import finalconfig1
 
 
 def build(confign):

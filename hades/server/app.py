@@ -1,12 +1,12 @@
-import os
 import asyncio
+import os
 
 from sanic import Sanic, response
 from sanic.exceptions import NotFound
 from sanic_cors import CORS
 
 from .auth.validate import validate_token
-from .env import env, Env
+from .env import Env, env
 from .routes import root_bp
 from .routes.sse import check_sse_token
 from .store import store_backend
