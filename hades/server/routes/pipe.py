@@ -45,7 +45,9 @@ async def next_stage(request):
                 )
                 if res:
                     data = pipe_producer.current_pipe_state(
-                        request.ctx.userid, request.args["projectid"][0]
+                        request.ctx.userid,
+                        request.args["projectid"][0],
+                        include_error=(request.ctx.env == "DEV"),
                     )
                     if data is None:
                         info = "submitted the job but something happened while getting current pipe status"
@@ -165,7 +167,9 @@ async def revert_stage(request):
                 )
                 if res:
                     data = pipe_producer.current_pipe_state(
-                        request.ctx.userid, request.args["projectid"][0]
+                        request.ctx.userid,
+                        request.args["projectid"][0],
+                        include_error=(request.ctx.env == "DEV"),
                     )
                     if data is None:
                         info = "successfully reverted to a previous stage but somehting fatal happened while getting current pipe state"
@@ -212,7 +216,9 @@ async def unfreeze_pipe(request):
                 status = 400
             elif pipe_producer.unfreeze_pipe(request.ctx.userid, request.args["projectid"][0]):
                 data = pipe_producer.current_pipe_state(
-                    request.ctx.userid, request.args["projectid"][0]
+                    request.ctx.userid,
+                    request.args["projectid"][0],
+                    include_error=(request.ctx.env == "DEV"),
                 )
                 if data is None:
                     info = "successfully unfreezed the pipe but something fatal happened while getting  current pipe state"

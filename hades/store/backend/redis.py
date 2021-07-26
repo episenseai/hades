@@ -513,7 +513,7 @@ class PipeTasksProducer(RedisTasksProducer):
                     watch_error_count += 1
                     continue
 
-    def current_pipe_state(self, userid, projectid):
+    def current_pipe_state(self, userid, projectid, include_error=False):
         result_hashmap = self.hashmap(userid, projectid)
         result = None
         with self.redis.pipeline() as pipe:
@@ -532,12 +532,20 @@ class PipeTasksProducer(RedisTasksProducer):
                     result, *_ = pipe.execute()
                     if any(map(lambda x: x is None, result)):
                         break
-                    result = {
-                        "current_stage": result[0],
-                        "pipe_status": result[1],
-                        "error_stype": result[2],
-                        "error_stack": result[3],
-                    }
+                    if include_error:
+                        result = {
+                            "current_stage": result[0],
+                            "pipe_status": result[1],
+                            "error_stype": result[2],
+                            "error_stack": result[3],
+                        }
+                    else:
+                        result = {
+                            "current_stage": result[0],
+                            "pipe_status": result[1],
+                            "error_stype": "",
+                            "error_stack": "",
+                        }
                     break
                 except redis.WatchError as ex:
                     if watch_error_count > 100:
@@ -1038,7 +1046,7 @@ class ModelsTasksProducer(RedisTasksProducer):
         return result
 
     # returns a dictionary of { modelid: data }
-    def get_model_data(self, user_id, project_id, list_of_modelid):
+    def get_model_data(self, user_id, project_id, list_of_modelid, include_error=False):
         model_result_hashmap = (
             f"{user_id}:{project_id}:{jobq_setting.MODELS_QUEUE}:{jobq_setting.DB_GEN}"
         )
@@ -1071,7 +1079,7 @@ class ModelsTasksProducer(RedisTasksProducer):
             model["id"] = modelid
             model["status"] = items[f"{modelid}:STATUS"]
             # do not send error trace to frontend. Use it internally for debugging.
-            if items[f"{modelid}:STATUS"] == "ERROR" and False:
+            if include_error and items[f"{modelid}:STATUS"] == "ERROR":
                 model["ERROR"] = items[f"{modelid}:ERROR"]
             else:
                 model["ERROR"] = ""

@@ -23,7 +23,11 @@ async def sse(request):
             # i = 1
             while True:
                 await asyncio.sleep(5)
-                data = pipe_producer.current_pipe_state(userid, projectid)
+                data = pipe_producer.current_pipe_state(
+                    userid,
+                    projectid,
+                    include_error=(request.ctx.env == "DEV"),
+                )
                 if data is None:
                     raise CancelledError("could not get current pipe state")
                 data["id"] = projectid

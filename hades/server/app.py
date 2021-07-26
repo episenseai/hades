@@ -33,6 +33,8 @@ async def authorization(request):
     # print("path: ", request.path)
     # print(request.args)
 
+    request.ctx.env = env().ENV.value
+
     if request.path in ["/sse/events", "/sse/events/models"]:
         proj = check_sse_token(request)
         if not proj:

@@ -23,7 +23,9 @@ async def model_build(request):
                 status = 400
             else:
                 data = pipe_producer.current_pipe_state(
-                    request.ctx.userid, request.args["projectid"][0]
+                    request.ctx.userid,
+                    request.args["projectid"][0],
+                    include_error=(request.ctx.env == "DEV"),
                 )
                 if data is None:
                     info = f"Something unexpected happened while getting the model state of {request.args['projectid'][0]} for submitting model build jobs"
@@ -92,7 +94,9 @@ async def model_build(request):
                                 info = "Something unknown happended."
                         else:
                             data = pipe_producer.current_pipe_state(
-                                request.ctx.userid, request.args["projectid"][0]
+                                request.ctx.userid,
+                                request.args["projectid"][0],
+                                include_error=(request.ctx.env == "DEV"),
                             )
                             if data is None:
                                 info = (
@@ -145,7 +149,10 @@ async def model_results(request):
                     status = 400
                 else:
                     data = model_producer.get_model_data(
-                        request.ctx.userid, request.args["projectid"][0], models_list
+                        request.ctx.userid,
+                        request.args["projectid"][0],
+                        models_list,
+                        include_error=(request.ctx.env == "DEV"),
                     )
                     # debug(data)
                     info = f"Got models data for the {proj[0]} project"
@@ -192,6 +199,7 @@ async def get_model_result(request):
                     request.ctx.userid,
                     request.args["projectid"][0],
                     [request.json["modelid"]],
+                    include_error=(request.ctx.env == "DEV"),
                 )
                 # pprint(data)
                 info = f"Got models data for the {proj[0]} project"

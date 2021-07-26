@@ -87,7 +87,9 @@ async def set_project(request):
                     request.ctx.userid, request.args["projectid"][0]
                 )
                 data = pipe_producer.current_pipe_state(
-                    request.ctx.userid, request.args["projectid"][0]
+                    request.ctx.userid,
+                    request.args["projectid"][0],
+                    include_error=(request.ctx.env == "DEV"),
                 )
                 if data is None:
                     info = f"Something unexpected happened while setting the current project to {request.args['projectid'][0]}"
