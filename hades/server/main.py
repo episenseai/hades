@@ -7,7 +7,7 @@ if __name__ == "__main__":
     warnings.filterwarnings("ignore")
 
     app.config.KEEP_ALIVE_TIMEOUT = 30
-    app.config.REQUEST_MAX_SIZE = 100000000
+    app.config.REQUEST_MAX_SIZE = 52428800  # %0 MiB
     app.config.RESPONSE_TIMEOUT = 300
     app.config.REQUEST_BUFFER_QUEUE_SIZE = 400
 
