@@ -6,6 +6,8 @@ from pydantic import root_validator, validator
 from pydantic.types import StrictBool, StrictStr
 
 from ..utils import ImmutBaseModel
+from ..env import env, Env
+from ..logger import logger
 
 # NOTE: Do not use this harccoded public/private key pair in production
 public_key = """
@@ -32,6 +34,9 @@ asymetric_crypto = {
     "EdDSA",
 }
 
+# same key as the one in titan
+PRODUDCTION_PUB_KEY_PATH = "/etc/episense/pub/rsa_jwt_pub"
+
 
 class JWTSettings(ImmutBaseModel):
     authjwt_algorithm: StrictStr = "RS512"
@@ -44,42 +49,43 @@ class JWTSettings(ImmutBaseModel):
     authjwt_denylist_enabled: StrictBool = False
     authjwt_denylist_token_types: set[StrictStr] = {"access_token", "refresh_token"}
 
-    @validator("authjwt_algorithm", always=True)
-    def validate_algorithm(cls, v):
-        if v not in symmetric_crypto and v not in asymetric_crypto:
-            raise RuntimeError(
-                f"authjwt_algorithm = '{v}' not in supported symmetric/asymetric list"
-            )
-        return v
+    @validator("authjwt_algorithm", pre=True, always=True)
+    def algorithm(cls, _):
+        """
+        Always use RS512 assymetric crypto
+        """
+        return "RS512"
 
-    @validator("authjwt_denylist_token_types", each_item=True, always=True)
-    def validate_denylist(cls, v):
-        authjwt_denylist_token_types = {"access_token", "refresh_token"}
-        if v not in authjwt_denylist_token_types:
-            raise RuntimeError(f"allowed {authjwt_denylist_token_types=}")
-        return v
-
-    @root_validator(pre=False)
-    def validate_algo_keys(cls, values):
-        algo = values.get("authjwt_algorithm")
-        if algo in asymetric_crypto:
-            if values.get("authjwt_public_key") is None:
-                raise RuntimeError("authjwt_public_key is not provided")
-            if values.get("authjwt_private_key") is not None:
-                raise RuntimeError("authjwt_private_key is not needed as we are doing validation")
-        if algo in symmetric_crypto:
-            if values.get("authjwt_secret_key") is None:
-                raise RuntimeError("authjwt_secret_key not provided")
-        return values
+    @validator("authjwt_public_key", pre=True, always=True)
+    def public_key_production(cls, key):
+        """
+        Always load public key from file mount at 'PRODUDCTION_PUB_KEY_PATH' in
+        production
+        """
+        if env().ENV == Env.DEV:
+            return key
+        else:
+            try:
+                with open(PRODUDCTION_PUB_KEY_PATH) as public_key:
+                    return public_key.read()
+            except FileNotFoundError as ex:
+                logger.error(f"missinng RSA public key file: {ex}")
+                exit(1)
+            except Exception as ex:
+                logger.error(
+                    f"occurred while processing RSA public key file ({PRODUDCTION_PUB_KEY_PATH}): {ex}"
+                )
+                exit(1)
 
     @root_validator(pre=False)
     def token_expires(cls, values):
         if values.get("authjwt_access_token_expires") >= values.get(
             "authjwt_refresh_token_expires"
         ):
-            raise RuntimeError(
+            logger.error(
                 "authjwt_access_token_expires must be less than authjwt_refresh_token_expires"
             )
+            exit(1)
         return values
 
     def get_secret_key(self, method: Optional[str] = None):
@@ -89,11 +95,14 @@ class JWTSettings(ImmutBaseModel):
             elif method == "decode":
                 return self.authjwt_public_key
             else:
-                raise RuntimeError(f"unsupported_method = {method} for jwt")
+                logger.critical(f"unsupported_method = {method} for jwt")
+                exit(1)
         elif self.authjwt_algorithm in symmetric_crypto:
-            return self.authjwt_secret_key
+            logger.critical(f"Symmetric crypto not supported = {self.authjwt_algorithm} for jwt")
+            exit(1)
         else:
-            raise RuntimeError(f"Unsupported algorithm = {self.authjwt_algorithm} for jwt")
+            logger.critical(f"Unsupported algorithm = {self.authjwt_algorithm} for jwt")
+            exit(1)
 
 
 @lru_cache
