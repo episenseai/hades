@@ -17,7 +17,7 @@ app.blueprint(root_bp)
 # CORS setting
 CORS(
     app,
-    resources={r"/*": {}},
+    resources={r"/*": {"origins": env().CORS_ORIGIN}},
     methods=env().cors_methods,
     automatic_options=True,
     supports_credentials=True,
