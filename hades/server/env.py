@@ -18,6 +18,7 @@ class Settings(BaseSettings):
     PORT: int = 3002
     WORKERS: int = 1
 
+    CORS_ENABLED: bool = True
     CORS_ORIGIN: str = "http://localhost:3000"
 
     REDIS_PASSWORD: Optional[SecretStr] = None
@@ -61,14 +62,6 @@ class Settings(BaseSettings):
             "password": self.redis_pasword,
             "decode_responses": True,
         }
-
-    @property
-    def cors_origins(self) -> list[str]:
-        return [self.CORS_ORIGIN]
-
-    @property
-    def cors_methods(self) -> list[str]:
-        return ["GET", "POST", "PUT", "DELETE", "OPTIONS"]
 
     class Config:
         env_prefix = "HADES_SERVER_"
