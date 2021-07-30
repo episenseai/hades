@@ -116,7 +116,7 @@ def paramlist(confign):
             ],
         },
         "clf__penalty": {"default": "l2", "possible_str": ["l2", "l1", "elasticnet"]},
-        "clf__alpha": {"default": 0.0001, "possible_list": [0.0001, 0.001, 0.01, 0.1, 1, 10]},
+        "clf__alpha": {"default": 0.0001, "possible_float": [0.0001, 1000]},
     }
     default_hp_grid = {
         "clf__loss": [

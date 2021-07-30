@@ -100,11 +100,11 @@ def paramlist(confign):
         "loss": {"default": "deviance", "possible_str": ["deviance", "exponential"]},
         "learning_rate": {
             "default": 0.1,
-            "possible_list": [0.1, 0.25, 0.5, 0.75, 1, 1.25, 1.5, 1.75, 2],
+            "possible_float": [0.0001, 1000],
         },
         "n_estimators": {
             "default": 100,
-            "possible_list": list(range(100, 1001, 100)),
+            "possible_int": [10,1000],
         },
         "criterion": {"default": "friedman_mse", "possible_str": ["friedman_mse", "mse"]},
         "max_depth": {"default": None, "possible_int": [1, config["data"]["rows"]]},

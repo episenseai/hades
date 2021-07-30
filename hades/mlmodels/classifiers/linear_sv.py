@@ -111,14 +111,9 @@ def paramlist(confign):
         "clf__loss": {"default": "squared_hinge", "possible_str": ["squared_hinge", "hinge"]},
         "clf__C": {
             "default": 1.0,
-            "possible_list": [
-                0.01,
-                0.1,
-                1,
-                5,
-                10,
-                50,
-                100,
+            "possible_float": [
+                0.0001,
+                1000
             ],
         },
     }

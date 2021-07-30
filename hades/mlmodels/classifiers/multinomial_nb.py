@@ -104,7 +104,7 @@ def paramlist(confign):
     possible_param_grid = {
         "clf__alpha": {
             "default": 1.0,
-            "possible_list": [0.01, 0.1, 1, 10, 100],
+            "possible_float": [0.0001, 1000],
         },
         "clf__fit_prior": {"default": True, "possible_str": [True, False]},
     }

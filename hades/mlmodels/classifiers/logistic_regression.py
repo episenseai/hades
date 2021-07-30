@@ -118,7 +118,7 @@ def paramlist(confign):
         "clf__penalty": {"default": "l2", "possible_str": ["l1", "l2", "elasticnet", "none"]},
         "clf__C": {
             "default": 1.0,
-            "possible_list": [0.001, 0.01, 0.1, 1, 10, 100, 1000],
+            "possible_float": [0.001, 1000],
         },
         "clf__solver": {
             "default": "lbfgs",

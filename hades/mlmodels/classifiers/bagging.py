@@ -104,11 +104,11 @@ def paramlist(confign):
     possible_param_grid = {
         "n_estimators": {
             "default": 10,
-            "possible_list": list(range(10, 250, 20)),
+            "possible_int": [1,1000],
         },
         "max_samples": {
             "default": 1.0,
-            "possible_list": list(range(1, 100, 20)),
+            "possible_int": [1,100],
         },
         "max_features": {"default": 1.0, "possible_int": [1, config["data"]["includedFeatures"]]},
         "bootstrap": {"default": False, "possible_str": [True, False]},

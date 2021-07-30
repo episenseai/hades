@@ -113,11 +113,11 @@ def paramlist(confign):
     possible_param_grid = {
         "clf__C": {
             "default": 1.0,
-            "possible_list": [0.01, 0.1, 1, 10, 100],
+            "possible_float": [0.0001, 1000],
         },
         "clf__max_iter": {
             "default": 1000,
-            "possible_list": [1000, 10000],
+            "possible_int": [100, 10000],
         },
         "clf__warm_start": {"default": False, "possible_str": [True, False]},
         "clf__loss": {"default": "hinge", "possible_str": ["hinge", "string"]},
