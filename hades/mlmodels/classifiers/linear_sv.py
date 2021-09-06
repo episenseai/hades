@@ -111,10 +111,7 @@ def paramlist(confign):
         "clf__loss": {"default": "squared_hinge", "possible_str": ["squared_hinge", "hinge"]},
         "clf__C": {
             "default": 1.0,
-            "possible_float": [
-                0.0001,
-                1000
-            ],
+            "possible_float": [0.0001, 1000],
         },
     }
     default_hp_grid = {

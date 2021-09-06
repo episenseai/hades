@@ -104,7 +104,7 @@ def paramlist(confign):
         },
         "n_estimators": {
             "default": 100,
-            "possible_int": [10,1000],
+            "possible_int": [10, 1000],
         },
         "criterion": {"default": "friedman_mse", "possible_str": ["friedman_mse", "mse"]},
         "max_depth": {"default": None, "possible_int": [1, config["data"]["rows"]]},

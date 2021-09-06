@@ -8,10 +8,10 @@
 
 #### Installation
 ```bash
-make install
+./utils --reinstall
 ```
 
 ## Start apps:
-- `./server`
-- `./mlmodels`
-- `./mlpipeline`
+- `./dev-server`
+- `./dev-models`
+- `./dev-pipeline`
