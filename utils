@@ -73,6 +73,8 @@ if [ "$FORMAT" -eq 1 ]; then
 fi
 
 if [ "$DOCKERBUILD" -eq 1 ]; then
+	export DOCKER_BUILDKIT=1
+	export BUILDKIT_PROGRESS=${BUILDKIT_PROGRESS:-plain}
 	docker build -t hades-server:latest --target hades-server .
 	docker build -t hades-mlpipeline:latest --target hades-mlpipeline .
 	docker build -t hades-mlmodels:latest --target hades-mlmodels .
