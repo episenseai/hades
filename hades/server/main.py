@@ -1,3 +1,5 @@
+import logging
+
 from .app import app
 from .env import env
 
@@ -5,6 +7,8 @@ if __name__ == "__main__":
     import warnings
 
     warnings.filterwarnings("ignore")
+
+    logging.basicConfig(level=logging.INFO)
 
     app.config.KEEP_ALIVE_TIMEOUT = 30
     app.config.REQUEST_MAX_SIZE = 52428800  # %0 MiB

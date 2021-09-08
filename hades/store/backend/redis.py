@@ -6,11 +6,10 @@ import pickle
 import time
 import traceback
 import uuid
-from collections import namedtuple
+from collections import Counter, namedtuple
 from multiprocessing import Process, Queue
 from typing import Any, List, Optional, Tuple
 
-import jwt
 import orjson
 import redis
 from pydantic import BaseModel
@@ -478,6 +477,9 @@ class PipeTasksProducer(RedisTasksProducer):
                         pipe.execute()
                     break
                 except redis.WatchError:
+                    if error_count > 5:
+                        status = False
+                        break
                     error_count += 1
                     continue
         return status
@@ -820,8 +822,9 @@ class ModelsTasksProducer(RedisTasksProducer):
         project_id,
         optimizeUsing,
         modelType,
-        modelids: Optional[List[str]] = None,
+        modelids: List[str],
         changed_hparams=None,
+        init: bool = False,
     ):  # pylint: disable=unsubscriptable-object
         """
         modelType: one of ["regressor", "classifier", "multi_classifier"]
@@ -837,13 +840,6 @@ class ModelsTasksProducer(RedisTasksProducer):
         use hashmap 'userid:projectid:CANCELLED:DB_GEN' to track cancellations of jobid
             set(jobids) # use sentinel value 'SENTINEL' while instantiating the set
         """
-        if not modelids:
-            modelids = []
-        else:
-            modelids = list(set(modelids))
-        if not modelids:
-            modelids = self.get_all_model_ids_for_type(modelType)
-
         if not changed_hparams:
             changed_hparams = {}
 
@@ -852,22 +848,50 @@ class ModelsTasksProducer(RedisTasksProducer):
             models_rejected: List[str]
             models_to_build: List[str]
             models_to_ignore: List[str]
-
-        result = None
+            models_to_init: List[str]
 
         models_accepted: List[MLModel] = []
         # `modelids` for which the `model.modelType` does not match `modelType`
         modelids_rejected: List[str] = []
         models_to_build: List[MLModel] = []
-        # if the models is rerun and the status is not in ["DONE", "ERROR", "CANCELLED"] then
-        # the models are not added to the job_queue
+        # if the models is rerun and the status is not in ["DONE", "ERROR", "CANCELLED"]
+        # then the models are not added to the job_queue
         models_to_ignore: List[MLModel] = []
+        models_to_init: List[MLModel] = []
 
         models_accepted, modelids_rejected = self.get_model_by_ids(
             [] if not modelids else modelids, modelType
         )
 
-        if models_accepted:
+        result = None
+        if len(modelids_rejected) > 0:
+            return (
+                result,
+                ModelJobs(
+                    models_accepted=[model.modelid for model in models_accepted],
+                    models_rejected=modelids_rejected,
+                    models_to_build=[],
+                    models_to_ignore=[],
+                    models_to_init=[],
+                ),
+            )
+
+        if init:
+            print("INFO: request to initialze the pipeline")
+            # list of modelids to initialize
+            ms = []
+            for m in self.get_all_model_ids_for_type(modelType):
+                found = False
+                for m1 in models_accepted:
+                    if m == m1.modelid:
+                        found = True
+                    break
+                if not found:
+                    ms.append(m)
+            if ms:
+                models_to_init, _ = self.get_model_by_ids(ms, modelType)
+
+        if models_accepted or models_to_init:
             # config data used for model building
             pipe_result_hashmap = (
                 f"{user_id}:{project_id}:{jobq_setting.PIPE_QUEUE}:{jobq_setting.DB_GEN}"
@@ -884,13 +908,15 @@ class ModelsTasksProducer(RedisTasksProducer):
                 while True:
                     try:
                         pipe.watch(pipe_result_hashmap, model_result_hashmap)
-                        current_stage, pipe_status = pipe.hmget(
+                        current_stage, pipe_status, init_staus = pipe.hmget(
                             pipe_result_hashmap,
                             "current.stage",
                             "pipe:STATUS",
+                            "init:STATUS",
                         )
 
                         pipe_status = int(pipe_status)
+                        # pipe_status == -1 (pipeline error)
                         pipe_ok = pipe_status in (0, 1)
 
                         if pipe_status == 1:
@@ -898,6 +924,12 @@ class ModelsTasksProducer(RedisTasksProducer):
                         else:
                             job_rerun = False
 
+                        init_staus = 0 if not init_staus else int(init_staus)
+                        initialzed = init_staus == 1
+
+                        if init and (initialzed or job_rerun):
+                            print("ERROR: trying to reinitialze an initialzed pipeline")
+                            break
                         if pipe_ok and (current_stage == self.current_stage):
                             if job_rerun:
                                 models_status_keys = []
@@ -907,7 +939,7 @@ class ModelsTasksProducer(RedisTasksProducer):
                                 models_to_build = []
                                 models_to_ignore = []
                                 for (status, model) in zip(models_status, models_accepted):
-                                    if status in ["DONE", "ERROR", "CANCELLED"]:
+                                    if status in ["DONE", "ERROR", "CANCELLED", "INIT"]:
                                         models_to_build.append(model)
                                     else:
                                         models_to_ignore.append(model)
@@ -923,17 +955,14 @@ class ModelsTasksProducer(RedisTasksProducer):
                             pipe.multi()
                             mss = {}
 
-                            from devtools import debug
-
-                            debug(models_to_build)
-                            for i, model in enumerate(models_to_build):
-                                print(changed_hparams)
+                            for _, model in enumerate(models_to_build):
+                                # print(changed_hparams)
                                 if model.modelid not in changed_hparams:
-                                    print(f"{model.modelid} model does not have hyperparams")
+                                    # print(f"{model.modelid} model does not have hyperparams")
                                     hparams = {}
                                 else:
                                     hparams = changed_hparams[model.modelid]
-                                print(changed_hparams)
+                                # print(changed_hparams)
                                 self.modeljob_add(
                                     client=pipe,
                                     keys=[
@@ -959,13 +988,19 @@ class ModelsTasksProducer(RedisTasksProducer):
                                         self.to_JSON(hparams),  # 20
                                     ],
                                 )
-                                if not job_rerun:
+                                if init:
                                     mss[f"{user_id}:{project_id}:{model.modelid}"] = 0
                             for model in models_to_build:
                                 pipe.hset(model_result_hashmap, f"{model.modelid}:STATUS", "WAIT")
-                            if not job_rerun:
+                            if init:
+                                for model in models_to_init:
+                                    mss[f"{user_id}:{project_id}:{model.modelid}"] = 0
+                                    pipe.hset(
+                                        model_result_hashmap, f"{model.modelid}:STATUS", "INIT"
+                                    )
                                 pipe.zadd(self.models_sorted_set, mss)
                                 pipe.hset(pipe_result_hashmap, "pipe:STATUS", "1")
+                                pipe.hset(pipe_result_hashmap, "init:STATUS", "1")
                                 pipe.hset(model_result_hashmap, "model_type", modelType)
                                 pipe.hset(model_result_hashmap, "optimizeUsing", optimizeUsing)
                             result = pipe.execute()
@@ -989,6 +1024,7 @@ class ModelsTasksProducer(RedisTasksProducer):
                 models_rejected=modelids_rejected,
                 models_to_build=[model.modelid for model in models_to_build],
                 models_to_ignore=[model.modelid for model in models_to_ignore],
+                models_to_init=[model.modelid for model in models_to_init],
             ),
         )
 
@@ -1008,6 +1044,38 @@ class ModelsTasksProducer(RedisTasksProducer):
             )
         )
 
+    def model_state_tally(self, user_id, project_id, modelType) -> Optional[Counter]:
+        modelids = self.get_all_model_ids_for_type(modelType)
+        if modelids is None or len(modelids) == 0:
+            return None
+        model_result_hashmap = (
+            f"{user_id}:{project_id}:{jobq_setting.MODELS_QUEUE}:{jobq_setting.DB_GEN}"
+        )
+        result = None
+        with self.redis.pipeline() as pipe:
+            watch_error_count = 0
+            while True:
+                try:
+                    pipe.watch(model_result_hashmap)
+                    pipe.multi()
+                    for modelid in modelids:
+                        pipe.hget(model_result_hashmap, f"{modelid}:STATUS")
+                    result = pipe.execute()
+                    break
+                except redis.WatchError:
+                    if watch_error_count > 5:
+                        result = None
+                        break
+                    watch_error_count += 1
+                except Exception as ex:
+                    result = None
+                    print(ex)
+                    break
+        if result is None:
+            return None
+        else:
+            return Counter(result)
+
     def cancel_job(self, user_id, project_id, modelid):
         model_result_hashmap = (
             f"{user_id}:{project_id}:{jobq_setting.MODELS_QUEUE}:{jobq_setting.DB_GEN}"
@@ -1023,8 +1091,9 @@ class ModelsTasksProducer(RedisTasksProducer):
                         model_result_hashmap, f"{modelid}:JOBID", f"{modelid}:STATUS"
                     )
                     print(f"current_jobid for cancellation = {current_jobid} {current_status}")
-                    if current_status not in ["ERROR", "DONE", "CANCELLED"]:
+                    if current_status in ["WAIT", "RUNNING"]:
                         pipe.multi()
+                        pipe.hget(model_result_hashmap, f"{modelid}:STATUS")
                         pipe.hset(cancelled_hashmap, current_jobid, 1)
                         pipe.hset(model_result_hashmap, f"{modelid}:STATUS", "TRYCANCEL")
                         result = pipe.execute()
@@ -1106,7 +1175,7 @@ class ModelsTasksConsumer(RedisTasksConsumer):
     """
     model_result_hashmap - {userid}:{projectid}:{models_queue}:{DB_GEN}
         modelid:DATA -> final result
-        modelid:STATUS -> one of ["WAIT", "RUNNING", "ERROR", "DONE","TRYCANCEL", "CANCELLED"]
+        modelid:STATUS -> one of ["INIT", "WAIT", "RUNNING", "ERROR", "DONE","TRYCANCEL", "CANCELLED"]
         modelid:JOBID
         modelid:ERROR -> error message if any
         modelid:PICKLE -> path to pickled model

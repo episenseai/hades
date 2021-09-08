@@ -3,13 +3,14 @@ from typing import Optional
 from pydantic.main import BaseModel
 from sanic import Blueprint, response
 
-from ..store import model_producer, pipe_producer, store_backend
+from ..store import metrics_db, model_producer, pipe_producer, store_backend
 
 models_bp = Blueprint("models_service", url_prefix="/tab/v1/models")
 
 
 @models_bp.post("/build")
 async def model_build(request):
+    quota_error = False
     models_dict: Optional[BaseModel] = None
     data = []
     try:
@@ -48,68 +49,87 @@ async def model_build(request):
                     else:
                         model_type = data["data"]["model_type"]
                         optimizeUsing = data["data"]["optimizeUsing"]
-                        if "modelids" not in request.json:
+
+                        init = request.json.get("init", False) is True
+                        if (
+                            "modelids" not in request.json
+                            or not request.json["modelids"]
+                            or not isinstance(request.json["modelids"], list)
+                        ):
                             modelids = []
                         else:
-                            modelids = request.json["modelids"]
-                        if "changed_hparams" not in request.json:
-                            changed_hparams = {}
-                        else:
-                            changed_hparams = request.json["changed_hparams"]
-                        print(f"{changed_hparams=}***********")
-                        print(f"{modelids=}***********")
+                            modelids = list(set(request.json["modelids"]))
 
-                        res, models_dict = model_producer.submit_model_jobs(
-                            request.ctx.userid,
-                            request.args["projectid"][0],
-                            optimizeUsing,
-                            model_type,
-                            modelids,
-                            changed_hparams,
+                        state_tally = model_producer.model_state_tally(
+                            request.ctx.userid, request.args["projectid"][0], model_type
                         )
-                        # no model job was queued
-                        if not res:
+                        state_quota = 0
+                        if state_tally is not None:
+                            for s in ["WAIT", "RUNNING", "TRYCANCEL"]:
+                                state_quota += state_tally.get(s, 0)
+
+                        quota = metrics_db.models_build(request.ctx.userid, requested=len(modelids))
+                        if len(modelids) == 0 and init is False:
                             status = 400
-                            # there were model job to be
-                            if models_dict.models_to_build:
-                                status = 500
-                                info = f"Something fatal happened while submitting models jobs for {request.args['projectid'][0]}"
-                            elif len(models_dict.models_rejected) == len(modelids):
-                                info = (
-                                    "None of the modelids provided were relavant for this project. "
-                                )
-                            elif len(models_dict.models_to_ignore) == len(modelids):
-                                info = (
-                                    "None of the modelids have status in [DONE, ERROR, CANCELLED]"
-                                )
-                            elif (
-                                len(models_dict.models_rejected) + len(models_dict.models_to_ignore)
-                            ) == len(modelids):
-                                info = (
-                                    "Some of the modelids were irrelavant for the project "
-                                    + "and the rest of them do not have status in [DONE, ERROR, CANCELLED]."
-                                )
-                            else:
-                                status = 500
-                                info = "Something unknown happended."
+                            info = "No models provided for build"
+                        elif quota is None:
+                            quota_error = True
+                            status = 400
+                            info = "Invalid request for model building"
+                        elif quota[0] is False and init is False:
+                            quota_error = True
+                            status = 400
+                            info = "Build Limit Exceeded: Try after some time."
+                        elif state_tally is not None and state_quota >= 3:
+                            quota_error = (True,)
+                            status = 400
+                            info = "Queue Limit Exceeded: wait for some models to finish or clear the queue."
                         else:
-                            data = pipe_producer.current_pipe_state(
+                            if quota[0] is False and init is True:
+                                print("INFO: quota exceeded: we will only initialize the pipeline")
+                                modelids = []
+                            changed_hparams = request.json.get("changed_hparams", {})
+                            res, models_dict = model_producer.submit_model_jobs(
                                 request.ctx.userid,
                                 request.args["projectid"][0],
-                                include_error=(request.ctx.env == "DEV"),
+                                optimizeUsing,
+                                model_type,
+                                modelids,
+                                changed_hparams=changed_hparams,
+                                init=init,
                             )
-                            if data is None:
-                                info = (
-                                    "Submitted jobs, but couldn't get current state of the pipeline."
-                                    + "Try refreshing the page"
-                                )
-                                status = 500
+
+                            # no model job was queued
+                            if not res and not init:
+                                status = 400
+                                # there were model job to be
+                                if len(models_dict.models_rejected) > 0:
+                                    info = "Invalid Models IDs"
+                                elif len(models_dict.models_to_build) > 0:
+                                    print(
+                                        f"Something fatal happened while submitting models jobs for {request.args['projectid'][0]}"
+                                    )
+                                    info = "Invalid request for model building"
+                                else:
+                                    info = "Invalid request for model building"
                             else:
-                                data["id"] = request.args["projectid"][0]
-                                data["name"] = proj[0]
-                                data["timestamp"] = proj[1]
-                                info = f"Successfully submitted {model_type} model jobs for the {proj[0]} project"
-                                status = 200
+                                data = pipe_producer.current_pipe_state(
+                                    request.ctx.userid,
+                                    request.args["projectid"][0],
+                                    include_error=(request.ctx.env == "DEV"),
+                                )
+                                if data is None:
+                                    info = (
+                                        "Submitted jobs, but couldn't get current state of the pipeline."
+                                        + "Try refreshing the page"
+                                    )
+                                    status = 400
+                                else:
+                                    data["id"] = request.args["projectid"][0]
+                                    data["name"] = proj[0]
+                                    data["timestamp"] = proj[1]
+                                    info = f"Successfully submitted {model_type} model jobs for the {proj[0]} project"
+                                    status = 200
     except Exception as ex:
         import traceback
 
@@ -122,7 +142,8 @@ async def model_build(request):
             "version": "v1",
             "info": info,
             "data": data if (status == 200) else {},
-            "models_dict": models_dict.dict(),
+            "models_dict": models_dict.dict() if models_dict else {},
+            "quota_error": quota_error,
         },
         status=status,
     )
@@ -228,8 +249,8 @@ async def cancel_model_job(request):
         if "userid" not in request.args and "projectid" not in request.args:
             info = "Bad request. missing parameters"
             status = 400
-        elif "modelid" not in request.json:
-            info = "Bad request. missing 'modelid' in json body"
+        elif "modelid" not in request.json or not isinstance(request.json["modelid"], str):
+            info = "Invalid request"
             status = 400
         else:
             proj = store_backend.verify_projectid(request.ctx.userid, request.args["projectid"][0])
@@ -247,7 +268,6 @@ async def cancel_model_job(request):
                     request.args["projectid"][0],
                     request.json["modelid"],
                 )
-                # pprint(data)
                 if data:
                     status = 200
                     if data[0] == 0:
@@ -255,16 +275,19 @@ async def cancel_model_job(request):
                     elif data[0] == 1:
                         info = "Model build was already cancelled from a previous request."
                     else:
+                        if data[1] and data[1][0] == "WAIT":
+                            if not metrics_db.models_cancel(request.ctx.userid, 1):
+                                print("ERROR: could not add cancelled model event")
                         info = "Model was successfully marked for cancellation."
                 else:
                     info = "Error trying to cancel the model build"
-                    status = 500
+                    status = 400
     except Exception as ex:
         import traceback
 
         print(traceback.format_exc())
         info = ex.args[0]
-        status = 500
+        status = 400
     return response.json(
         {
             "success": True if (status == 200) else False,

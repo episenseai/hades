@@ -15,11 +15,17 @@ class Env(str, Enum):
 class Settings(BaseSettings):
     ENV: Env = Env.DEV
 
-    REDIS_PASSWORD: Optional[SecretStr] = None
-    REDIS_HOST: str = "localhost"
     # User setting is ignored and it always uses the deault value
     REDIS_PORT: int = 6379
+    REDIS_HOST: str = "localhost"
+    REDIS_PASSWORD: Optional[SecretStr] = None
     REDIS_DATABASE_NUMBER: int = 2
+
+    # User setting is ignored and it always uses the deault value
+    REDIS_METRICS_PORT: int = 6379
+    REDIS_METRICS_HOST: str = "localhost"
+    REDIS_METRICS_PASSWORD: Optional[SecretStr] = None
+    REDIS_METRICS_DATABASE_NUMBER: int = 3
 
     UPLOADS_VOLUME: str = "./bucket/uploads"
     TMP_VOLUME: str = "./bucket/mlpipeline/tmp"
@@ -33,7 +39,7 @@ class Settings(BaseSettings):
         "mlpipeline:worker4",
     ]
 
-    @validator("REDIS_PORT", pre=True, always=True)
+    @validator("REDIS_PORT", "REDIS_METRICS_PORT", pre=True, always=True)
     def ignore_redis_port(cls, _):
         """Always run on default port. Ignore environement"""
         return 6379
@@ -71,8 +77,21 @@ class Settings(BaseSettings):
         return f"redis://{self.REDIS_HOST}:{self.REDIS_PORT}/{self.REDIS_DATABASE_NUMBER}"
 
     @property
-    def redis_pasword(self) -> Optional[str]:
+    def redis_password(self) -> Optional[str]:
         secret = self.REDIS_PASSWORD
+        if secret is None:
+            return None
+        else:
+            return secret.get_secret_value()
+
+    @property
+    def redis_metrics_url(self) -> str:
+        # redis://localhost:6379/3
+        return f"redis://{self.REDIS_METRICS_HOST}:{self.REDIS_METRICS_PORT}/{self.REDIS_METRICS_DATABASE_NUMBER}"
+
+    @property
+    def redis_metrics_password(self) -> Optional[str]:
+        secret = self.REDIS_METRICS_PASSWORD
         if secret is None:
             return None
         else:
@@ -84,7 +103,7 @@ class Settings(BaseSettings):
             "host": self.REDIS_HOST,
             "port": self.REDIS_PORT,
             "db": self.REDIS_DATABASE_NUMBER,
-            "password": self.redis_pasword,
+            "password": self.redis_password,
             "decode_responses": True,
         }
 

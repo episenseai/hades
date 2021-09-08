@@ -9,7 +9,6 @@ from .auth.validate import validate_token
 from .env import Env, env
 from .routes import root_bp
 from .routes.sse import check_sse_token
-from .store import store_backend
 
 app = Sanic("hades")
 app.blueprint(root_bp)
