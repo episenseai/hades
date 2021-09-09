@@ -13,13 +13,15 @@ class MetricsDB:
         redis_port: int,
         redis_password: Optional[str],
         redis_db: int,
-        models_per_6hr: int,
+        num_hour: int,
+        models_per_num_hour: int,
         logger: Logger,
     ):
         self.redis = redis.Redis(
             host=redis_host, port=redis_port, password=redis_password, db=redis_db
         )
-        self.models_per_6hr = models_per_6hr
+        self.num_hour = num_hour
+        self.models_per_num_hour = models_per_num_hour
         self.logger = logger
 
     def build_key(self, userid):
@@ -37,7 +39,7 @@ class MetricsDB:
 
         current_time = datetime.datetime.now(tz=datetime.timezone.utc)
         current_timestamp = current_time.timestamp()
-        previous_timestamp = (current_time - datetime.timedelta(hours=6)).timestamp()
+        previous_timestamp = (current_time - datetime.timedelta(hours=self.num_hour)).timestamp()
 
         try:
             build_count = self.redis.zcount(build_key, previous_timestamp, current_timestamp)
@@ -45,19 +47,19 @@ class MetricsDB:
             current = max(build_count - cancel_count, 0)
 
             if requested < 1:
-                return (True, max(self.models_per_6hr - current, 0))
-            if (current + requested) > self.models_per_6hr:
+                return (True, max(self.models_per_num_hour - current, 0))
+            if (current + requested) > self.models_per_num_hour:
                 self.logger.info(
                     f"QUOTA exceeded for models ({current=}, {requested=}, ({userid=})"
                 )
-                return (False, max(self.models_per_6hr - current, 0))
+                return (False, max(self.models_per_num_hour - current, 0))
 
             events = {}
             for _ in range(requested):
                 events[secrets.token_hex(16)] = current_timestamp
 
             if self.redis.zadd(build_key, events) == requested:
-                return (True, max(self.models_per_6hr - current + requested, 0))
+                return (True, max(self.models_per_num_hour - current + requested, 0))
             self.logger.error(f"could not add models_build event (userid={userid})")
             return None
         except Exception as ex:
@@ -100,7 +102,8 @@ if __name__ == "__main__":
         redis_port=6379,
         redis_password=None,
         redis_db=4,
-        models_per_6hr=10,
+        num_hour=6,
+        models_per_num_hour=10,
         logger=logger,
     )
 

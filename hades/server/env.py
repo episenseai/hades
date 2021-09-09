@@ -32,7 +32,8 @@ class Settings(BaseSettings):
     REDIS_METRICS_PASSWORD: Optional[SecretStr] = None
     REDIS_METRICS_DATABASE_NUMBER: int = 3
 
-    MODELS_PER_6HR = 6
+    NUM_HOUR = 6
+    MODELS_PER_NUM_HOUR = 6
 
     UPLOADS_VOLUME: str = "./bucket/uploads"
     MODELS_VOLUME: str = "./bucket/models"
