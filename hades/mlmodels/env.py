@@ -31,13 +31,25 @@ class Settings(BaseSettings):
     MODELS_VOLUME: str = "./bucket/models"
     TMP_VOLUME: str = "./bucket/mlmodels/tmp"
 
-    NUM_WORKERS: PositiveInt = 1
+    NUM_WORKERS: PositiveInt = 2
     # export HADES_MLPIPELINE_WORKER_NAMES='["worker1", "worker2"]'
     WORKER_NAMES: list[str] = [
         "mlmodels:worker1",
         "mlmodels:worker2",
         "mlmodels:worker3",
         "mlmodels:worker4",
+        "mlmodels:worker5",
+        "mlmodels:worker6",
+        "mlmodels:worker7",
+        "mlmodels:worker8",
+        "mlmodels:worker9",
+        "mlmodels:worker10",
+        "mlmodels:worker11",
+        "mlmodels:worker12",
+        "mlmodels:worker13",
+        "mlmodels:worker14",
+        "mlmodels:worker15",
+        "mlmodels:worker16",
     ]
 
     @validator("REDIS_PORT", "REDIS_METRICS_PORT", pre=True, always=True)

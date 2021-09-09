@@ -30,13 +30,15 @@ class Settings(BaseSettings):
     UPLOADS_VOLUME: str = "./bucket/uploads"
     TMP_VOLUME: str = "./bucket/mlpipeline/tmp"
 
-    NUM_WORKERS: PositiveInt = 1
+    NUM_WORKERS: PositiveInt = 2
     # export HADES_MLPIPELINE_WORKER_NAMES='["worker1", "worker2"]'
     WORKER_NAMES: list[str] = [
         "mlpipeline:worker1",
         "mlpipeline:worker2",
         "mlpipeline:worker3",
         "mlpipeline:worker4",
+        "mlpipeline:worker5",
+        "mlpipeline:worker6",
     ]
 
     @validator("REDIS_PORT", "REDIS_METRICS_PORT", pre=True, always=True)

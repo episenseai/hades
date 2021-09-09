@@ -5,7 +5,6 @@ if __name__ == "__main__":
     try:
         spawn_model_workers()
         print("============ STARTING (MLMODELS) ============")
-        print(f"{env()}")
         join_model_workers()
     except KeyboardInterrupt:
         pass

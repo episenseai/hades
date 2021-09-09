@@ -2,7 +2,7 @@ from typing import Optional
 
 from pydantic.main import BaseModel
 from sanic import Blueprint, response
-
+from ..env import env, Env
 from ..store import metrics_db, model_producer, pipe_producer, store_backend
 
 models_bp = Blueprint("models_service", url_prefix="/tab/v1/models")
@@ -80,8 +80,8 @@ async def model_build(request):
                             quota_error = True
                             status = 400
                             info = "Build Limit Exceeded: Try after some time."
-                        elif state_tally is not None and state_quota >= 3:
-                            quota_error = (True,)
+                        elif env().ENV != Env.DEV and state_tally is not None and state_quota >= 3:
+                            quota_error = True
                             status = 400
                             info = "Queue Limit Exceeded: wait for some models to finish or clear the queue."
                         else:
