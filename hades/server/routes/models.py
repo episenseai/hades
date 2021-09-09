@@ -120,7 +120,7 @@ async def model_build(request):
                                 )
                                 if data is None:
                                     info = (
-                                        "Submitted jobs, but couldn't get current state of the pipeline."
+                                        "Submitted jobs but unable to get current status."
                                         + "Try refreshing the page"
                                     )
                                     status = 400
@@ -128,7 +128,12 @@ async def model_build(request):
                                     data["id"] = request.args["projectid"][0]
                                     data["name"] = proj[0]
                                     data["timestamp"] = proj[1]
-                                    info = f"Successfully submitted {model_type} model jobs for the {proj[0]} project"
+                                    if init:
+                                        info = "Successfully initialized the pipeline. You can start building models."
+                                    else:
+                                        info = (
+                                            f"Successfully submitted jobs for the {proj[0]} project"
+                                        )
                                     status = 200
     except Exception as ex:
         import traceback
