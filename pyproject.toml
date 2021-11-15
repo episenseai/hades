@@ -31,37 +31,14 @@ matplotlib = "3.4.2"
 requires = ["poetry-core>=1.0.0"]
 build-backend = "poetry.core.masonry.api"
 
-[tool.pytest.ini_options]
-minversion = "6.0"
-filterwarnings = [
-    "error",
-]
-testpaths = [
-    "tests",
-    "integration",
-]
-
 [tool.black]
 line-length = 100
-exclude = "(.eggs|.git|.hg|.mypy_cache|.pytest_cache|.ipynb_checkpoints|.nox|.tox|.venv|.svn|_build|buck-out|build|dist)"
 
 [tool.isort]
 profile = "black"
-src_paths = ["hades", "tests"]
 line_length = 100
 
 [tool.pyright]
-include = ["hades"]
-extraPaths = ["hades"]
-exclude = [".venv", "**/__pycache__"]
-reportTypeshedErrors = false
-reportUnboundVariable = "none"
-reportMissingImports = true
-reportMissingTypeStubs = false
 reportGeneralTypeIssues = "none"
-reportOptionalSubscript = false
-reportOptionalIterable = false
-reportOptionalOperand = false
-executionEnvironments = [
-  { root = "./", extraPaths = ["hades"], exclude = [".venv", "**/__pycache__"] }
-]
+reportMissingTypeStubs = "none"
+reportPrivateImportUsage = "none"
