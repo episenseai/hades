@@ -1,3 +1,8 @@
+# Project Status
+
+Project is no longer mantained.
+
+
 ## Installing project dependencies
 #### Requirements:
 - Make sure [`poetry`](https://python-poetry.org/docs/#installation) is installed.
